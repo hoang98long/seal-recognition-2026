@@ -205,6 +205,23 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Application runtime and local secrets
+node_modules/
+data/
+*.dump
+*.sql.gz
+backend/.env.*.local
+frontend/.env.local
+playwright-report/
+test-results/
+frontend/.e2e-runtime.json
+# The supplied brief includes local database credentials.
+Prompt_Codex_He_Thong_Giam_Dinh_Con_Dau.txt
+# Keep frontend source despite the generic Python lib/ rule above.
+!frontend/src/lib/
+!frontend/src/lib/**
+*.tsbuildinfo
+
 # Ruff stuff:
 .ruff_cache/
 

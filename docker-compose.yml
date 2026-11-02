@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    env_file: backend/.env
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql+psycopg://postgres:CHANGE_ME@host.docker.internal:5432/seal_forensics}
+      STORAGE_ROOT: /data
+      FRONTEND_ORIGIN: http://localhost:5173
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./data:/data
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - backend

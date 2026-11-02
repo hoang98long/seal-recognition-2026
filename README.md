@@ -1,1 +1,170 @@
-# seal-recognition-2026
+# Hệ thống giám định con dấu · MVP V1
+
+Ứng dụng nội bộ **FastAPI + PostgreSQL + React/TypeScript**, giao diện tiếng Việt. Tải PDF/ảnh, chọn ROI thủ công, tiền xử lý có thể tái lập, quản lý thư viện tham chiếu và so sánh hai ROI qua OpenAI Vision. Bản gốc giữ nguyên; ảnh lưu disk, metadata và lịch sử lưu PostgreSQL.
+
+**Không phải kết luận giám định pháp y.** Điểm 0–100 chưa hiệu chuẩn, không phải xác suất cùng dụng cụ hay chứng minh văn bản thật/giả. Có thể trả “KHÔNG ĐỦ CƠ SỞ KẾT LUẬN”, điểm `null`. Không suy đoán tổ chức khi không có mẫu phù hợp.
+
+## Chạy trên máy hiện tại
+
+`.venv`, thư viện npm, database `seal_forensics`, migration và seed development đã được thiết lập. `backend/.env` chứa kết nối local riêng, khóa phiên ngẫu nhiên và **OPENAI_API_KEY đang trống**. Xem [kết quả kiểm tra](docs/verification.md).
+
+Mở hai terminal PowerShell tại thư mục gốc:
+
+```powershell
+# Terminal 1
+.\scripts\start_backend.ps1
+```
+
+```powershell
+# Terminal 2
+.\scripts\start_frontend.ps1
+```
+
+Trên máy này, cổng 8000/5173 đang thuộc ứng dụng khác nên cấu hình local dùng **http://localhost:5180**, backend **http://localhost:8010**, OpenAPI **http://localhost:8010/docs**. Đăng nhập **admin / admin**, đổi mật khẩu (ít nhất 10 ký tự). Hai script trên tự đọc cấu hình cổng hiện tại. File mẫu vẫn dùng 8000/5173 cho môi trường mới.
+
+Muốn trở về cổng chuẩn khi đã trống: đặt API_PORT=8000 và FRONTEND_ORIGIN=http://localhost:5173 trong backend/.env, đồng thời SEAL_API_TARGET=http://127.0.0.1:8000 và SEAL_FRONTEND_PORT=5173 trong frontend/.env.local, rồi chạy lại hai terminal.
+
+Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, kiểm tra `OPENAI_MODEL=gpt-4.1` rồi khởi động lại backend. Cài đặt → Kết nối OpenAI → Kiểm tra kết nối dùng một yêu cầu văn bản ngắn, có thể phát sinh phí; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision. **Chưa xác nhận với API thật khi chưa có khóa hợp lệ.** Không tự thay thế bằng kết quả giả.
+
+## Thiết lập từ đầu trên Windows
+
+Yêu cầu Python 3.11+ (đã kiểm tra với 3.13), Node.js LTS và PostgreSQL tại `localhost:5432`. Không cần Poppler, Redis hoặc PostgreSQL container. PowerShell tại thư mục dự án:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".\backend[dev]" -c .\backend\requirements.lock.txt
+.\.venv\Scripts\python.exe .\scripts\setup_env.py
+notepad .\backend\.env
+```
+
+Điền `DATABASE_URL=postgresql+psycopg://postgres:YOUR_LOCAL_PASSWORD@localhost:5432/seal_forensics` với mật khẩu riêng (URL-encode ký tự đặc biệt). Script tạo khóa phiên ngẫu nhiên, không ghi đè `.env` đã có. Không đưa `.env` vào Git. Thiếu khóa OpenAI vẫn dùng upload, CRUD và xử lý ảnh.
+
+```powershell
+$env:PYTHONUTF8 = "1"
+.\scripts\init_db.ps1
+```
+
+Script chỉ tạo database nếu chưa có, không reset/xóa DB. Nếu thiếu quyền, dùng pgAdmin kết nối database `postgres` rồi chạy `CREATE DATABASE seal_forensics;`, hoặc:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -h localhost -p 5432 -U postgres -d postgres -c "CREATE DATABASE seal_forensics;"
+```
+
+Các lệnh riêng sau khi tạo DB:
+
+```powershell
+Set-Location backend
+..\.venv\Scripts\alembic.exe upgrade head
+..\.venv\Scripts\python.exe -m app.seed
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --no-access-log
+```
+
+Terminal thứ hai:
+
+```powershell
+Set-Location frontend
+npm.cmd ci
+npm.cmd run dev
+```
+
+Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và cookie; không trộn với 127.0.0.1. Vite chuyển tiếp `/api` sang backend. Nếu execution policy chặn `.ps1`, chạy các lệnh Python/npm trên mà không thay đổi policy toàn máy.
+
+## Quy trình sử dụng
+
+1. Đăng nhập và đổi mật khẩu bắt buộc. Dashboard hiển thị số liệu DB thật, không seed phiên phân tích giả.
+2. Tài liệu nguồn → tải PDF/PNG/JPG/TIFF/WEBP. Chọn từng trang/khung, giới hạn mặc định 25 MB, 100 trang, 40 triệu pixel/trang.
+3. Xưởng xử lý → chọn nguồn/trang. Kéo ROI, kéo góc resize hoặc nhập X/Y/Rộng/Cao theo **pixel nguồn trước khi xoay**. Kiểm tra gợi ý vùng mực đỏ bằng mắt.
+4. Điều chỉnh góc xoay, sáng/tương phản/gamma, bão hòa, khử nhiễu, nét, HSV, ngưỡng, hình thái, đảo màu, nền. Preview tính bằng backend. Lưu/copy hồ sơ thông số cho Q/K; ROI chọn riêng từng ảnh.
+5. Xác nhận ROI → Áp dụng và lưu. Tải PNG hoặc chọn làm Q/K. Chỉnh tiếp cần lưu phiên bản mới trước khi chọn.
+6. Thư viện → thêm tổ chức, mẫu thiết kế, dụng cụ khi có bằng chứng nguồn gốc, ảnh đã xử lý. Tải nhiều ảnh tạo nhiều lần đóng; ảnh nguyên trang cần xử lý và cập nhật trước khi so sánh. Dụng cụ có thể để trống.
+7. So khớp → chọn Q/K tải lên hoặc tối đa 5 K thư viện. Kiểm tra ảnh, số calls và xác nhận được phép gửi OpenAI. Chỉ ROI đã lưu được gửi, không gửi PDF trực tiếp.
+8. Xem dấu hiệu giống/khác/chưa rõ, hạn chế, model/usage. Zoom, hoán đổi hiển thị, chồng ảnh cùng kích thước (chưa căn chỉnh hình học). Khoanh vùng người dùng được lưu riêng với nguồn user.
+9. So sánh lại tạo kết quả mới cùng phiên; giữ nguyên ID ảnh, SHA256 và thông số của kết quả cũ. Xuất HTML tự chứa ảnh; **Ctrl+P → Lưu dưới dạng PDF** trong trình duyệt.
+
+“Lớp phủ mặt nạ” chỉ tô preview, không lưu màu xanh vào ảnh mực. Làm nét không phục hồi chứng cứ gốc. Preview hiển thị cạnh tối đa 1200px, PNG lưu theo ROI đầy đủ. Nếu dùng toàn ảnh/trang thay vì crop, cần xác nhận riêng rằng toàn bộ nội dung có thể được gửi khi chọn Q/K.
+
+## Kiến trúc
+
+```text
+backend/app/api/v1/    HTTP, auth, RBAC, CSRF
+backend/app/services/  lưu tệp, PDF, tiền xử lý, orchestration, báo cáo
+backend/app/matching/  MatchingProvider, OpenAI, skeleton V2/V3
+backend/app/db/        SQLAlchemy models, repositories, session
+backend/alembic/       migration PostgreSQL upgrade/downgrade
+backend/tests/         PostgreSQL + ảnh DEMO + SDK qua HTTP mock
+frontend/src/          layout, UI, canvas và các trang nghiệp vụ
+scripts/               khởi tạo, chạy local và hạ tầng E2E
+docker/                Dockerfile, reverse proxy tùy chọn
+data/                  uploads/, processed/, reports/ (gitignored)
+```
+
+Tài liệu: [kiến trúc](docs/architecture.md), [DB](docs/database.md), [API](docs/api.md), [bảo mật/giới hạn](docs/security_and_limitations.md), [roadmap](docs/roadmap.md).
+
+```mermaid
+erDiagram
+  users ||--o{ file_assets : uploads
+  organizations ||--o{ seal_designs : owns
+  seal_designs ||--o{ seal_devices : instantiates
+  seal_designs ||--o{ seal_impressions : references
+  seal_devices o|--o{ seal_impressions : documented_source
+  file_assets ||--o| source_documents : source
+  file_assets ||--o{ preprocessing_runs : input_output
+  preprocessing_profiles o|--o{ preprocessing_runs : parameters
+  file_assets ||--o{ seal_impressions : image
+  analysis_sessions ||--|{ analysis_candidates : compares
+  analysis_sessions ||--o{ analysis_results : versions
+  analysis_candidates ||--o{ analysis_results : reference
+  analysis_results ||--o{ annotation_regions : manual_regions
+  users ||--o{ audit_logs : acts
+```
+
+## Kiểm thử
+
+```powershell
+Set-Location backend
+..\.venv\Scripts\python.exe -m pytest -q
+..\.venv\Scripts\ruff.exe check app tests
+..\.venv\Scripts\alembic.exe check
+Set-Location ..\frontend
+npm.cmd run build
+npm.cmd run test:e2e
+```
+
+Pytest tạo **schema ngẫu nhiên riêng**, chạy Alembic/seed thật và dọn đúng schema đó; không truncate bảng ứng dụng. Cần quyền CREATE SCHEMA. Ảnh DEMO sinh trong test. OpenAI mock ở HTTP transport của **official SDK**, không tốn phí API.
+
+Playwright dùng backend/DB/storage riêng và cổng 18081/15174, không đổi mật khẩu admin thật. Dùng Chrome Windows có sẵn; máy khác có thể cần `npm.cmd exec -- playwright install chromium`. Kết quả test ghi **DEMO — không phải AI thật**. Mock không được nạp ở ứng dụng thường.
+
+## Docker tùy chọn
+
+Compose chỉ có backend/frontend, không tạo PostgreSQL và không chiếm 5432. DB trên host Windows dùng **host.docker.internal**; backend chạy trực tiếp dùng **localhost**:
+
+```powershell
+$env:DOCKER_DATABASE_URL = "postgresql+psycopg://postgres:YOUR_LOCAL_PASSWORD@host.docker.internal:5432/seal_forensics"
+docker compose build
+docker compose run --rm backend alembic upgrade head
+docker compose run --rm backend python -m app.seed
+docker compose up
+```
+
+Các cổng bind 127.0.0.1. Storage gắn `./data`. Không seed production; provision admin mạnh riêng trước chuyển production.
+
+## Xử lý sự cố
+
+| Hiện tượng | Xử lý |
+| --- | --- |
+| DB connection refused | Kiểm tra PostgreSQL service, localhost:5432; Docker dùng host.docker.internal. |
+| Database does not exist | Kết nối DB postgres, tạo seal_forensics rồi chạy migration. |
+| Sai thông tin DB | Sửa DATABASE_URL, URL-encode mật khẩu, restart backend. |
+| OpenAI invalid key / 401 | Điền OPENAI_API_KEY ở backend/.env; không nhập ở frontend. |
+| Model not found / thiếu quyền | Đổi OPENAI_MODEL thành model hỗ trợ Vision + Structured Outputs mà tài khoản có quyền; restart. |
+| 429 | Kiểm tra hạn mức/billing API hoặc đợi. Không tự sinh điểm thay thế. |
+| Timeout / mạng | Kiểm tra proxy/firewall, timeout cấu hình; chạy lại thủ công. Kết quả lỗi vẫn lưu. |
+| PDF / mã hóa / codec | Dùng PDF không mật khẩu, kiểm tra tệp; pypdfium2 có wheel Windows, không cần Poppler. |
+| CORS / cookie / CSRF | Dùng http://localhost:5173, kiểm tra FRONTEND_ORIGIN, cho cookie và đăng nhập lại. |
+| 403 đổi mật khẩu / quyền | Đổi mật khẩu lần đầu; viewer không được mutation. |
+| Migration conflict | `alembic current`, `alembic heads`, `alembic check`; sao lưu trước sửa, không stamp head để che lỗi. |
+| Thiếu tệp disk | Khôi phục DB và data từ cùng backup; DB không chứa BLOB. |
+| Cổng đã dùng | Dừng đúng tiến trình của bạn hoặc đổi port/FRONTEND_ORIGIN/proxy đồng bộ. |
+| Unicode PowerShell | `$env:PYTHONUTF8="1"`; scripts khởi động đã đặt sẵn. |
+
+Gói ChatGPT và quyền/billing API được quản lý riêng; ứng dụng dùng **OpenAI API**. Không suy ra quyền model từ gói chat. Tham khảo [hướng dẫn API chính thức](https://developers.openai.com/api/docs/quickstart).

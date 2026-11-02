@@ -1,0 +1,195 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { ArrowRight, BookOpen, FileText, FolderUp, Layers, ScanLine, Sparkles } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { api } from '../../lib/api';
+import { dateTime, statusLabel } from '../../lib/utils';
+import type { Analysis, OpenAIStatus } from '../../types';
+import { Empty, ErrorBox, Loading, PageHeader } from '../../components/shared';
+import { Button } from '../../components/ui/button';
+export function Dashboard() {
+  const query = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () =>
+      api<{
+        documents: number;
+        designs: number;
+        impressions: number;
+        organizations: number;
+        analyses: number;
+        recent: Analysis[];
+        activity: { date: string; count: number }[];
+      }>('/dashboard/summary'),
+  });
+  const status = useQuery({
+    queryKey: ['openai-status'],
+    queryFn: () => api<OpenAIStatus>('/settings/openai/status'),
+  });
+  if (query.isPending) return <Loading />;
+  if (query.error) return <ErrorBox error={query.error} />;
+  const data = query.data;
+  return (
+    <>
+      <PageHeader
+        eyebrow="KHÔNG GIAN PHÂN TÍCH"
+        title="Tổng quan hệ thống"
+        description="Quản lý tài liệu, chuẩn bị ảnh và đối chiếu con dấu trong một quy trình."
+      >
+        <Button asChild>
+          <Link to="/compare/new">
+            <ScanLine size={17} />
+            So khớp mới
+          </Link>
+        </Button>
+      </PageHeader>
+      <div className="hero-panel">
+        <div>
+          <span className="hero-badge">
+            <Sparkles size={14} /> PHÂN TÍCH HÌNH ẢNH VỚI OPENAI VISION
+          </span>
+          <h2>
+            Từ hình ảnh đến
+            <br />
+            những quan sát rõ ràng.
+          </h2>
+          <p>
+            Chọn vùng con dấu, làm sạch ảnh và đối chiếu từng chi tiết.
+            <br />
+            Mọi phiên xử lý đều lưu lại nguồn ảnh và thông số đã dùng.
+          </p>
+          <Button asChild>
+            <Link to="/documents">
+              Bắt đầu với tài liệu
+              <ArrowRight size={16} />
+            </Link>
+          </Button>
+        </div>
+        <div className="hero-graphic" aria-hidden="true">
+          <div className="scan-grid">
+            <ScanLine size={110} />
+          </div>
+          <span className="scan-label">QUAN SÁT · SO SÁNH · LƯU VẾT</span>
+        </div>
+      </div>
+      <div className="stats-grid">
+        {[
+          [FileText, 'Tài liệu nguồn', data.documents],
+          [BookOpen, 'Mẫu thiết kế', data.designs],
+          [Layers, 'Ảnh dấu tham chiếu', data.impressions],
+          [ScanLine, 'Phiên phân tích', data.analyses],
+        ].map(([Icon, label, n]) => {
+          const I = Icon as typeof FileText;
+          return (
+            <div className="stat-card" key={String(label)}>
+              <div className="stat-top">
+                <span>{String(label)}</span>
+                <I size={20} />
+              </div>
+              <strong>{String(n)}</strong>
+              <small>Dữ liệu đang lưu trong hệ thống</small>
+            </div>
+          );
+        })}
+      </div>
+      <div className="quick-grid">
+        {[
+          ['/documents', FolderUp, 'Tải tài liệu', 'PDF, ảnh quét hoặc ảnh chụp'],
+          ['/compare/new', ScanLine, 'So khớp con dấu', 'Đối chiếu Q với ảnh tham chiếu K'],
+          ['/seal-library', BookOpen, 'Thêm mẫu con dấu', 'Xây dựng thư viện tham chiếu'],
+        ].map(([path, Icon, title, sub]) => {
+          const I = Icon as typeof FileText;
+          return (
+            <Link className="quick-card" key={String(path)} to={path as string}>
+              <I size={25} />
+              <div>
+                <strong>{title as string}</strong>
+                <small>{sub as string}</small>
+              </div>
+              <ArrowRight size={18} />
+            </Link>
+          );
+        })}
+      </div>
+      <div className="dashboard-bottom">
+        <section className="panel">
+          <div className="panel-heading">
+            <h2>Phiên phân tích gần đây</h2>
+            <Link to="/history">
+              Xem tất cả <ArrowRight size={14} />
+            </Link>
+          </div>
+          {data.recent.length ? (
+            <table>
+              <thead>
+                <tr>
+                  <th>Tên phiên</th>
+                  <th>Thời gian</th>
+                  <th>Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recent.map((x) => (
+                  <tr key={x.id}>
+                    <td>
+                      <Link to={`/compare/${x.id}/results`}>{x.title}</Link>
+                    </td>
+                    <td>{dateTime(x.created_at)}</td>
+                    <td>
+                      <span className={`badge ${x.status}`}>{statusLabel[x.status]}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <Empty
+              title="Chưa có phiên phân tích"
+              description="Sau khi chuẩn bị ảnh Q và K, bạn có thể bắt đầu đối chiếu tại đây."
+            />
+          )}
+        </section>
+        <section className="panel">
+          <div className="panel-heading">
+            <h2>Trạng thái kết nối</h2>
+            <span className={`status-dot ${status.data?.is_configured ? 'ok' : ''}`} />
+          </div>
+          <div className="connection-card">
+            <div className="ai-mark">
+              <Sparkles size={24} />
+            </div>
+            <h3>OpenAI Vision</h3>
+            <span className={`badge ${status.data?.is_configured ? 'completed' : 'draft'}`}>
+              {status.data?.is_configured ? 'Đã cấu hình khóa API' : 'Chưa cấu hình khóa API'}
+            </span>
+            <p>
+              Model: <strong>{status.data?.model || 'Đang tải…'}</strong>
+            </p>
+            <p>Ảnh chỉ được gửi khi bạn xác nhận phân tích. Xử lý nội bộ luôn khả dụng.</p>
+            <Button variant="outline" asChild>
+              <Link to="/settings">
+                Cài đặt kết nối <ArrowRight size={15} />
+              </Link>
+            </Button>
+          </div>
+        </section>
+      </div>
+      {data.activity.length > 0 && (
+        <section className="panel activity">
+          <div className="panel-heading">
+            <h2>Hoạt động phân tích</h2>
+            <span>Ngày có phát sinh phiên · UTC</span>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data.activity}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="count" name="Số phiên" fill="#0891b2" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </section>
+      )}
+    </>
+  );
+}
