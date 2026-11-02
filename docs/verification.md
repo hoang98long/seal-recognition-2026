@@ -27,4 +27,11 @@ Cổng 8000 và 5173 đang thuộc phần mềm khác (5173 là “DCPC · Infra
 
 Sau kiểm tra, schema thử nghiệm đã được dọn (0 schema còn lại), database ứng dụng không có phiên phân tích DEMO. Các server kiểm tra được dừng sau khi xác nhận; dịch vụ khác tại 8000/5173 được giữ nguyên.
 
-Tác vụ thủ công tiếp theo: chạy hai script start trong hai terminal, đăng nhập và đổi mật khẩu bắt buộc; điền OPENAI_API_KEY và khởi động lại backend nếu muốn dùng phân tích OpenAI thật. Xử lý ảnh/CRUD không cần key. Kết quả AI không được dùng như kết luận giám định pháp y.
+Tác vụ thủ công tiếp theo: mở hai terminal, kích hoạt .venv rồi chạy uvicorn trong backend; chạy npm run dev trong frontend. Xem lệnh đầy đủ tại [hướng dẫn terminal](vscode.md). Đăng nhập và đổi mật khẩu bắt buộc; điền OPENAI_API_KEY và khởi động lại backend nếu muốn dùng phân tích OpenAI thật. Xử lý ảnh/CRUD không cần key.
+
+## Chạy trực tiếp trong terminal VS Code
+
+- Đã bỏ các launcher backend/frontend .ps1/.cmd, run_backend.py và cấu hình task/debug VS Code không còn dùng.
+- Dùng .venv có sẵn tại thư mục gốc: kích hoạt trước, sau đó chạy uvicorn app.main:app trong thư mục backend với --port 8010. Frontend chạy npm run dev trong thư mục frontend; Vite đọc port/proxy từ frontend/.env.local.
+- Các script khởi tạo database, thiết lập .env và hạ tầng kiểm thử được giữ lại vì còn được sử dụng; chúng không cần chạy mỗi lần khởi động ứng dụng.
+- Đã chạy đúng các lệnh thủ công trong PowerShell: Activate.ps1 chọn python.exe/uvicorn.exe trong .venv; uvicorn --reload khởi động backend 8010; npm run dev khởi động frontend 5180. Health backend, trang frontend và health qua proxy đều trả HTTP 200. Các server kiểm tra đã được dừng sau xác nhận.

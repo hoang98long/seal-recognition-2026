@@ -6,23 +6,28 @@
 
 ## Chạy trên máy hiện tại
 
-`.venv`, thư viện npm, database `seal_forensics`, migration và seed development đã được thiết lập. `backend/.env` chứa kết nối local riêng, khóa phiên ngẫu nhiên và **OPENAI_API_KEY đang trống**. Xem [kết quả kiểm tra](docs/verification.md).
+`.venv`, thư viện npm, database `seal_forensics`, migration và seed development đã được thiết lập. `backend/.env` chứa cấu hình local riêng. Xem [kết quả kiểm tra](docs/verification.md).
 
-Mở hai terminal PowerShell tại thư mục gốc:
+Mở thư mục dự án trong VS Code, chọn **Terminal → New Terminal** và chạy trực tiếp trong hai terminal PowerShell riêng. Xem [hướng dẫn terminal VS Code](docs/vscode.md).
 
 ```powershell
-# Terminal 1
-.\scripts\start_backend.ps1
+# Terminal 1 — backend
+Set-Location "D:\01_viettree_code\seal-recognition-2026\backend"
+..\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
 ```powershell
-# Terminal 2
-.\scripts\start_frontend.ps1
+# Terminal 2 — frontend
+Set-Location "D:\01_viettree_code\seal-recognition-2026\frontend"
+npm run dev
 ```
 
-Trên máy này, cổng 8000/5173 đang thuộc ứng dụng khác nên cấu hình local dùng **http://localhost:5180**, backend **http://localhost:8010**, OpenAPI **http://localhost:8010/docs**. Đăng nhập **admin / admin**, đổi mật khẩu (ít nhất 10 ký tự). Hai script trên tự đọc cấu hình cổng hiện tại. File mẫu vẫn dùng 8000/5173 cho môi trường mới.
+Trên máy này, cấu hình local dùng **http://localhost:5180**, backend **http://localhost:8010**, OpenAPI **http://localhost:8010/docs** để tránh xung đột với cổng 8000/5173 của ứng dụng khác. Đăng nhập **admin / admin** nếu chưa đổi mật khẩu development, sau đó đổi mật khẩu bắt buộc. Giữ cả hai terminal mở; dừng bằng **Ctrl+C** trong từng terminal.
 
-Muốn trở về cổng chuẩn khi đã trống: đặt API_PORT=8000 và FRONTEND_ORIGIN=http://localhost:5173 trong backend/.env, đồng thời SEAL_API_TARGET=http://127.0.0.1:8000 và SEAL_FRONTEND_PORT=5173 trong frontend/.env.local, rồi chạy lại hai terminal.
+Nếu PowerShell báo `Activate.ps1` hoặc `npm.ps1` bị chặn, chạy `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` trong chính terminal đó rồi thử lại. Cấu hình chỉ có hiệu lực trong phiên terminal hiện tại. Hoặc chọn terminal **Command Prompt** và làm theo [hướng dẫn](docs/vscode.md).
+
+Muốn trở về cổng chuẩn khi đã trống: đổi lệnh uvicorn thành `--port 8000`, đặt API_PORT=8000 và FRONTEND_ORIGIN=http://localhost:5173 trong backend/.env, đồng thời SEAL_API_TARGET=http://127.0.0.1:8000 và SEAL_FRONTEND_PORT=5173 trong frontend/.env.local. Uvicorn CLI dùng `--port`, không tự đọc biến API_PORT của ứng dụng. File mẫu giữ các cổng mặc định 8000/5173.
 
 Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, kiểm tra `OPENAI_MODEL=gpt-4.1` rồi khởi động lại backend. Cài đặt → Kết nối OpenAI → Kiểm tra kết nối dùng một yêu cầu văn bản ngắn, có thể phát sinh phí; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision. **Chưa xác nhận với API thật khi chưa có khóa hợp lệ.** Không tự thay thế bằng kết quả giả.
 
@@ -54,20 +59,21 @@ Các lệnh riêng sau khi tạo DB:
 
 ```powershell
 Set-Location backend
-..\.venv\Scripts\alembic.exe upgrade head
-..\.venv\Scripts\python.exe -m app.seed
-..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --no-access-log
+..\.venv\Scripts\Activate.ps1
+alembic upgrade head
+python -m app.seed
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
 ```
 
 Terminal thứ hai:
 
 ```powershell
 Set-Location frontend
-npm.cmd ci
-npm.cmd run dev
+npm install
+npm run dev
 ```
 
-Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và cookie; không trộn với 127.0.0.1. Vite chuyển tiếp `/api` sang backend. Nếu execution policy chặn `.ps1`, chạy các lệnh Python/npm trên mà không thay đổi policy toàn máy.
+Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và cookie; không trộn với 127.0.0.1. Vite chuyển tiếp `/api` sang backend. Với môi trường mới dùng file .env.example mặc định, chọn uvicorn `--port 8000` và giao diện `http://localhost:5173`; với cấu hình local hiện tại dùng 8010/5180 như trên.
 
 ## Quy trình sử dụng
 
@@ -93,7 +99,7 @@ backend/app/db/        SQLAlchemy models, repositories, session
 backend/alembic/       migration PostgreSQL upgrade/downgrade
 backend/tests/         PostgreSQL + ảnh DEMO + SDK qua HTTP mock
 frontend/src/          layout, UI, canvas và các trang nghiệp vụ
-scripts/               khởi tạo, chạy local và hạ tầng E2E
+scripts/               công cụ khởi tạo và hạ tầng E2E (không cần để chạy hằng ngày)
 docker/                Dockerfile, reverse proxy tùy chọn
 data/                  uploads/, processed/, reports/ (gitignored)
 ```
