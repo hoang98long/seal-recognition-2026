@@ -174,19 +174,28 @@ export function UploadBox({
   onUploaded,
   kind = 'document',
   multiple = false,
+  accept = '.pdf,.png,.jpg,.jpeg,.tif,.tiff,.webp',
+  label = 'Tải tài liệu',
+  description = 'PDF, PNG, JPG, TIFF hoặc WEBP',
+  onBusyChange,
 }: {
   onUploaded: (a: Asset) => void | Promise<void>;
   kind?: string;
   multiple?: boolean;
+  accept?: string;
+  label?: string;
+  description?: string;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   async function files(list: FileList | null) {
-    if (!list?.length) return;
+    if (!list?.length || busy) return;
     setBusy(true);
+    onBusyChange?.(true);
     try {
-      for (const file of Array.from(list)) {
+      for (const file of Array.from(list).slice(0, multiple ? undefined : 1)) {
         await onUploaded(await upload(file, kind));
       }
       toast.success('Đã tải tệp vào kho lưu trữ.');
@@ -194,6 +203,7 @@ export function UploadBox({
       toast.error((e as Error).message);
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
       if (ref.current) ref.current.value = '';
     }
   }
@@ -214,14 +224,15 @@ export function UploadBox({
       <input
         ref={ref}
         type="file"
-        accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.webp"
+        accept={accept}
+        aria-label={label}
         multiple={multiple}
         hidden
         onChange={(e) => void files(e.target.files)}
       />
       <div className="upload-icon">{busy ? <LoaderCircle className="spin" /> : <FileUp />}</div>
       <strong>{busy ? 'Đang kiểm tra và tải tệp…' : 'Kéo thả tài liệu vào đây'}</strong>
-      <p>PDF, PNG, JPG, TIFF hoặc WEBP</p>
+      <p>{description}</p>
       <Button variant="outline" disabled={busy} onClick={() => ref.current?.click()}>
         Chọn tệp từ máy
       </Button>

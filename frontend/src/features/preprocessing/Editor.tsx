@@ -20,28 +20,8 @@ import { ErrorBox, Loading, Modal, PageHeader, UploadBox } from '../../component
 import { Button } from '../../components/ui/button';
 import { RegionCanvas } from '../../components/image-editor/RegionCanvas';
 import { useAuth } from '../auth/Auth';
+import { defaultParameters as defaults } from '../../lib/preprocessing';
 
-export const defaults: Parameters = {
-  rotation: 0,
-  brightness: 0,
-  contrast: 1,
-  gamma: 1,
-  saturation: 1,
-  sharpen: 0,
-  denoise: 0,
-  grayscale: false,
-  threshold_mode: 'off',
-  threshold_value: 127,
-  red_mask: false,
-  hue_width: 15,
-  saturation_min: 60,
-  value_min: 40,
-  morphology: 'none',
-  kernel_size: 3,
-  invert: false,
-  background: 'none',
-  apply_mask: true,
-};
 type EditorState = { parameters: Parameters; roi: ROI };
 export function Editor() {
   const [search, setSearch] = useSearchParams();

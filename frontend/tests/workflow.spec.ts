@@ -54,7 +54,11 @@ test('DEMO: đăng nhập, CRUD, cắt ảnh, so sánh, chú thích và báo cá
   await page
     .locator('input[type=file]')
     .setInputFiles({ name: 'DEMO.png', mimeType: 'image/png', buffer: Buffer.from(demo, 'base64') });
-  await page.getByRole('link', { name: 'Chọn con dấu để xử lý' }).click();
+  await page
+    .locator('.document-card')
+    .filter({ hasText: 'DEMO.png' })
+    .getByRole('link', { name: 'Chọn con dấu để xử lý' })
+    .click();
   await expect(page.getByRole('heading', { name: 'Xưởng xử lý ảnh', exact: true })).toBeVisible();
   const canvas = page.locator('.roi-svg');
   await expect(canvas).toBeVisible();

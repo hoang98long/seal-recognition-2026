@@ -35,6 +35,12 @@ export function Dashboard() {
         title="Tổng quan hệ thống"
         description="Quản lý tài liệu, chuẩn bị ảnh và đối chiếu con dấu trong một quy trình."
       >
+        <Button variant="outline" asChild>
+          <Link to="/demo/document-stamp">
+            <FileText size={17} />
+            Demo văn bản & ảnh dấu
+          </Link>
+        </Button>
         <Button asChild>
           <Link to="/compare/new">
             <ScanLine size={17} />

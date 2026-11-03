@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronRight,
   FileText,
+  Files,
   FlaskConical,
   History,
   LayoutDashboard,
@@ -32,6 +33,7 @@ const links = [
   ['/documents', 'Tài liệu nguồn', FileText],
   ['/preprocessing', 'Xưởng xử lý ảnh', FlaskConical],
   ['/compare/new', 'So khớp con dấu', ScanLine],
+  ['/demo/document-stamp', 'Demo văn bản & ảnh dấu', Files],
   ['/seal-library', 'Thư viện mẫu dấu', BookOpen],
   ['/organizations', 'Cơ quan / tổ chức', Building2],
   ['/history', 'Lịch sử phân tích', History],
@@ -70,13 +72,13 @@ export function Layout() {
         </NavLink>
         <div className="sidebar-label">KHÔNG GIAN LÀM VIỆC</div>
         <nav>
-          {links.map(([path, label, Icon], i) => (
+          {links.map(([path, label, Icon]) => (
             <NavLink
               key={path}
               to={path}
               onClick={() => setMobile(false)}
               className={({ isActive }) =>
-                `nav-link ${isActive ? 'active' : ''} ${i === 4 ? 'nav-divider' : ''}`
+                `nav-link ${isActive ? 'active' : ''} ${path === '/seal-library' ? 'nav-divider' : ''}`
               }
             >
               <Icon size={19} />

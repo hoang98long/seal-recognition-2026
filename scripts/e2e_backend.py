@@ -43,6 +43,8 @@ marker.write_text(
 
 import openai
 import uvicorn
+from app.core.security import password_hasher
+from app.db.models import User
 from app.db.session import SessionLocal, engine
 from app.main import app
 from app.seed import seed
@@ -116,6 +118,16 @@ try:
     command.upgrade(Config(str(root / "backend/alembic.ini")), "head")
     with SessionLocal() as db:
         seed(db)
+        db.add(
+            User(
+                username="demo_e2e",
+                full_name="Phân tích viên DEMO E2E",
+                role="analyst",
+                password_hash=password_hasher.hash("Demo-e2e-password-2026"),
+                must_change_password=False,
+            )
+        )
+        db.commit()
     uvicorn.run(
         app, host="127.0.0.1", port=18081, access_log=False, log_level="warning"
     )

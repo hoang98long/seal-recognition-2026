@@ -35,3 +35,12 @@ Tác vụ thủ công tiếp theo: mở hai terminal, kích hoạt .venv rồi c
 - Dùng .venv có sẵn tại thư mục gốc: kích hoạt trước, sau đó chạy uvicorn app.main:app trong thư mục backend với --port 8010. Frontend chạy npm run dev trong thư mục frontend; Vite đọc port/proxy từ frontend/.env.local.
 - Các script khởi tạo database, thiết lập .env và hạ tầng kiểm thử được giữ lại vì còn được sử dụng; chúng không cần chạy mỗi lần khởi động ứng dụng.
 - Đã chạy đúng các lệnh thủ công trong PowerShell: Activate.ps1 chọn python.exe/uvicorn.exe trong .venv; uvicorn --reload khởi động backend 8010; npm run dev khởi động frontend 5180. Health backend, trang frontend và health qua proxy đều trả HTTP 200. Các server kiểm tra đã được dừng sau xác nhận.
+
+## Mục demo văn bản & ảnh dấu · 03/11/2026
+
+- Thêm trang `/demo/document-stamp`, mục sidebar và nút vào từ Tổng quan. Tải PDF/ảnh văn bản cùng ảnh dấu tham chiếu, chọn trang/ROI, xem trước và lưu Q/K ngay tại trang; xác nhận chia sẻ, gọi provider OpenAI hiện có và hiển thị kết quả/báo cáo tại chỗ.
+- Tận dụng API upload/documents/preprocessing/analyses hiện có; phiên gắn source_document_id, từng lần gọi lưu snapshot Q/K và kết quả riêng. Không cần migration mới hoặc thay đổi cách chạy uvicorn/npm run dev.
+- Build TypeScript/Vite đạt. Toàn bộ E2E Chrome **4 passed**, gồm 3 kiểm thử mới: PDF hai trang + ảnh dấu đến kết quả/report/rerun, thiếu key không gửi dữ liệu, lỗi upstream không sinh điểm và retry cùng phiên sau xác nhận lại. Luồng nghiệp vụ cũ cũng qua kiểm thử sau khi thêm mục mới.
+- Kiểm thử sử dụng PostgreSQL/schema riêng và HTTP mock của official OpenAI SDK, không gọi API trả phí, không sửa dữ liệu hoặc key của ứng dụng thường. Kết quả kiểm thử ghi rõ DEMO. Chưa xác minh mục demo mới bằng một lần gọi OpenAI thật có tính phí.
+- Đã xem giao diện kết quả ở 1366×768, kiểm tra tablet 820px không tràn ngang. Ruff cho script test và git diff --check đạt; các cảnh báo PURE annotation của dependency Zod vẫn như trước, không làm hỏng build.
+- Hướng dẫn thao tác: [Demo văn bản & ảnh dấu](demo_document_stamp.md). Khi backend/frontend đang chạy, mở http://localhost:5180/demo/document-stamp. Key/model lấy từ backend/.env; nếu vừa thay đổi cấu hình, khởi động lại backend và đọc lại trạng thái trên trang.

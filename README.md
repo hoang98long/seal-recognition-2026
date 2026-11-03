@@ -77,6 +77,8 @@ Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và co
 
 ## Quy trình sử dụng
 
+**Demo nhanh một văn bản với một ảnh dấu:** vào mục **Demo văn bản & ảnh dấu** tại `/demo/document-stamp`. Trang riêng cho phép tải hai tệp, chọn trang/ROI, lưu Q/K, xác nhận gửi OpenAI và xem kết quả/báo cáo ngay trong cùng một luồng. Không cần chuẩn bị thư viện. Xem [hướng dẫn demo](docs/demo_document_stamp.md).
+
 1. Đăng nhập và đổi mật khẩu bắt buộc. Dashboard hiển thị số liệu DB thật, không seed phiên phân tích giả.
 2. Tài liệu nguồn → tải PDF/PNG/JPG/TIFF/WEBP. Chọn từng trang/khung, giới hạn mặc định 25 MB, 100 trang, 40 triệu pixel/trang.
 3. Xưởng xử lý → chọn nguồn/trang. Kéo ROI, kéo góc resize hoặc nhập X/Y/Rộng/Cao theo **pixel nguồn trước khi xoay**. Kiểm tra gợi ý vùng mực đỏ bằng mắt.

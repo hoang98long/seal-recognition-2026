@@ -24,7 +24,11 @@ export async function request(path: string, init: RequestInit = {}): Promise<Res
   try {
     response = await fetch(`/api/v1${path}`, { ...init, credentials: 'include', headers });
   } catch {
-    throw new ApiError(0, 'network', 'Không kết nối được backend. Kiểm tra dịch vụ tại cổng 8000.');
+    throw new ApiError(
+      0,
+      'network',
+      'Không kết nối được backend. Kiểm tra terminal uvicorn và cấu hình proxy frontend.',
+    );
   }
   if (!response.ok) {
     const data = await response.json().catch(() => null);

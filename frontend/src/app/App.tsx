@@ -14,6 +14,9 @@ const Organizations = lazy(() =>
 );
 const Library = lazy(() => import('../features/seal-library/Library').then((m) => ({ default: m.Library })));
 const Compare = lazy(() => import('../features/comparisons/Compare').then((m) => ({ default: m.Compare })));
+const DocumentDemo = lazy(() =>
+  import('../features/document-demo/DocumentDemo').then((m) => ({ default: m.DocumentDemo })),
+);
 const Results = lazy(() => import('../features/comparisons/Results').then((m) => ({ default: m.Results })));
 const History = lazy(() =>
   import('../features/analysis-history/History').then((m) => ({ default: m.History })),
@@ -36,6 +39,8 @@ export function App() {
         <Route path="/organizations" element={<Organizations />} />
         <Route path="/seal-library" element={<Library />} />
         <Route path="/compare/new" element={<Compare />} />
+        <Route path="/demo" element={<Navigate to="/demo/document-stamp" replace />} />
+        <Route path="/demo/document-stamp" element={<DocumentDemo />} />
         <Route path="/compare/:sessionId/results" element={<Results />} />
         <Route path="/history" element={<History />} />
         <Route path="/reports" element={<Reports />} />

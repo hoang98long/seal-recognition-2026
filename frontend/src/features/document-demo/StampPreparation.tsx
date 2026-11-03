@@ -1,0 +1,354 @@
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { CheckCircle2, LoaderCircle, RotateCcw, Save, WandSparkles } from 'lucide-react';
+import { toast } from 'sonner';
+import { api, post, previewUrl, request } from '../../lib/api';
+import { defaultParameters, preprocessingPreset } from '../../lib/preprocessing';
+import type { Asset, Parameters, ROI, Run } from '../../types';
+import { RegionCanvas } from '../../components/image-editor/RegionCanvas';
+import { ErrorBox, Loading } from '../../components/shared';
+import { Button } from '../../components/ui/button';
+
+export interface PreparedStamp {
+  asset: Asset;
+  run: Run;
+}
+
+export function StampPreparation({
+  asset,
+  role,
+  initial,
+  onPrepared,
+  onBusyChange,
+}: {
+  asset: Asset;
+  role: 'Q' | 'K';
+  initial: PreparedStamp | null;
+  onPrepared: (value: PreparedStamp | null) => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const [page, setPage] = useState(initial?.run.source_page || 1);
+  const [roi, setRoi] = useState<ROI | null>(initial?.run.roi_geometry || null);
+  const [parameters, setParameters] = useState<Parameters>(
+    initial?.run.parameters || { ...defaultParameters },
+  );
+  const [confirmed, setConfirmed] = useState(!!initial);
+  const [allowFull, setAllowFull] = useState(!!initial?.asset.source_metadata.whole_source_confirmed);
+  const [saved, setSaved] = useState<PreparedStamp | null>(initial);
+  const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState('');
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [error, setError] = useState('');
+  const source = useQuery({
+    queryKey: ['page-size', asset.id, page],
+    queryFn: () =>
+      api<{ width: number; height: number; roi: ROI | null }>(
+        `/preprocessing/suggest-roi/${asset.id}?page=${page}`,
+      ),
+  });
+  const wholePage =
+    !!roi &&
+    !!source.data &&
+    roi.x === 0 &&
+    roi.y === 0 &&
+    roi.width === source.data.width &&
+    roi.height === source.data.height;
+  const validRoi =
+    !!roi &&
+    !!source.data &&
+    roi.x >= 0 &&
+    roi.y >= 0 &&
+    roi.width >= 2 &&
+    roi.height >= 2 &&
+    roi.x + roi.width <= source.data.width &&
+    roi.y + roi.height <= source.data.height;
+
+  function invalidate() {
+    setSaved(null);
+    setError('');
+    onPrepared(null);
+  }
+  function changeRoi(next: ROI | null) {
+    setRoi(next);
+    setConfirmed(false);
+    setAllowFull(false);
+    invalidate();
+  }
+  function changeParameters(next: Parameters) {
+    setParameters(next);
+    invalidate();
+  }
+  function choosePage(next: number) {
+    setPage(next);
+    setRoi(null);
+    setParameters({ ...defaultParameters });
+    setConfirmed(false);
+    setAllowFull(false);
+    invalidate();
+  }
+  useEffect(() => {
+    if (!validRoi || !roi) {
+      setPreview('');
+      setPreviewBusy(false);
+      return;
+    }
+    const controller = new AbortController();
+    let url = '';
+    setPreview('');
+    const timer = setTimeout(async () => {
+      setPreviewBusy(true);
+      try {
+        const response = await request('/preprocessing/preview', {
+          method: 'POST',
+          signal: controller.signal,
+          body: JSON.stringify({ source_asset_id: asset.id, page, roi, parameters }),
+        });
+        const blob = await response.blob();
+        if (!controller.signal.aborted) {
+          url = URL.createObjectURL(blob);
+          setPreview(url);
+          setError('');
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) setError((e as Error).message);
+      } finally {
+        if (!controller.signal.aborted) setPreviewBusy(false);
+      }
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [asset.id, page, roi, parameters, validRoi]);
+
+  async function save() {
+    if (!validRoi || !confirmed || saving) return;
+    setSaving(true);
+    onBusyChange(true);
+    setError('');
+    try {
+      const result = await post<PreparedStamp>('/preprocessing/apply', {
+        source_asset_id: asset.id,
+        page,
+        roi,
+        parameters,
+        roi_confirmed: confirmed,
+        allow_full_page: allowFull,
+      });
+      setSaved(result);
+      onPrepared(result);
+      toast.success(`Đã lưu ảnh ${role} sẵn sàng so khớp.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+      onBusyChange(false);
+    }
+  }
+  const numberControl = (
+    key: 'rotation' | 'brightness' | 'contrast' | 'gamma' | 'saturation' | 'sharpen' | 'denoise',
+    label: string,
+    min: number,
+    max: number,
+    step = 1,
+  ) => (
+    <label className="demo-number" key={key}>
+      {label}
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={parameters[key]}
+        disabled={saving}
+        onChange={(e) => {
+          const value = Number(e.target.value);
+          if (Number.isFinite(value) && value >= min && value <= max)
+            changeParameters({ ...parameters, [key]: value });
+        }}
+      />
+    </label>
+  );
+  return (
+    <section className="panel demo-preparation" aria-label={`Chuẩn bị ảnh ${role}`}>
+      <div className="panel-heading">
+        <h2>
+          <span className={`demo-role role-${role}`}>{role}</span>
+          {role === 'Q' ? 'Dấu trong văn bản' : 'Ảnh dấu đối chiếu'}
+        </h2>
+        {saved && (
+          <span className="badge completed">
+            <CheckCircle2 size={12} />
+            Đã lưu {role}
+          </span>
+        )}
+      </div>
+      <div className="demo-prep-source">
+        <strong title={asset.original_filename}>{asset.original_filename}</strong>
+        <label>
+          Trang / khung ảnh {role}
+          <select value={page} disabled={saving} onChange={(e) => choosePage(Number(e.target.value))}>
+            {Array.from({ length: asset.page_count }, (_, i) => (
+              <option key={i} value={i + 1}>
+                Trang {i + 1} / {asset.page_count}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {source.isPending ? (
+        <Loading />
+      ) : source.error ? (
+        <ErrorBox error={source.error} />
+      ) : (
+        <>
+          <RegionCanvas
+            src={previewUrl(asset.id, page)}
+            width={source.data.width}
+            height={source.data.height}
+            roi={roi}
+            onChange={changeRoi}
+            readOnly={saving}
+          />
+          <div className="demo-prep-controls">
+            <div className="demo-prep-actions">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={saving}
+                onClick={() => {
+                  if (source.data.roi) changeRoi(source.data.roi);
+                  else toast.info('Chưa tìm thấy mực đỏ. Hãy kéo vùng chọn thủ công.');
+                }}
+              >
+                <WandSparkles size={15} />
+                Gợi ý vùng mực đỏ {role}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={saving}
+                onClick={() =>
+                  changeRoi({ x: 0, y: 0, width: source.data.width, height: source.data.height })
+                }
+              >
+                Dùng toàn ảnh {role}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={saving}
+                aria-label={`Xóa vùng chọn ${role}`}
+                onClick={() => changeRoi(null)}
+              >
+                <RotateCcw size={15} />
+              </Button>
+            </div>
+            <p className="muted small">
+              Kéo hình chữ nhật và chỉnh các góc. Tọa độ theo ảnh gốc; chỉ vùng đã xác nhận được gửi.
+            </p>
+            {roi && (
+              <div className="roi-fields">
+                {(['x', 'y', 'width', 'height'] as const).map((key, i) => (
+                  <label key={key}>
+                    {['X', 'Y', 'Rộng', 'Cao'][i]} {role}
+                    <input
+                      type="number"
+                      min={i < 2 ? 0 : 2}
+                      value={roi[key]}
+                      disabled={saving}
+                      onChange={(e) => changeRoi({ ...roi, [key]: Number(e.target.value) })}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+            <label>
+              Cấu hình xử lý {role}
+              <select
+                disabled={saving}
+                value="custom"
+                onChange={(e) => changeParameters(preprocessingPreset(e.target.value))}
+              >
+                <option value="custom" disabled>
+                  Thông số hiện tại
+                </option>
+                <option value="original">Giữ nguyên màu mực</option>
+                <option value="red">Tách mực đỏ</option>
+                <option value="bw">Đen trắng</option>
+                <option value="gentle">Làm rõ nhẹ</option>
+              </select>
+            </label>
+            <div className="demo-adjustments">
+              {numberControl('rotation', `Góc xoay ${role}`, -180, 180)}
+              {numberControl('brightness', `Độ sáng ${role}`, -100, 100)}
+              {numberControl('contrast', `Tương phản ${role}`, 0.1, 3, 0.05)}
+              {numberControl('gamma', `Gamma ${role}`, 0.1, 3, 0.05)}
+            </div>
+            <details className="demo-extra">
+              <summary>Điều chỉnh thêm</summary>
+              <div className="demo-adjustments">
+                {numberControl('saturation', `Bão hòa ${role}`, 0, 3, 0.05)}
+                {numberControl('sharpen', `Làm nét ${role}`, 0, 3, 0.1)}
+                {numberControl('denoise', `Khử nhiễu ${role}`, 0, 10)}
+              </div>
+              <p className="muted small">
+                Giữ màu mực khi có thể. Làm nét và phân ngưỡng có thể thay đổi hoặc làm mất chi tiết.
+              </p>
+            </details>
+            {!validRoi && <p className="demo-hint">Chọn một vùng con dấu hợp lệ trước khi lưu ảnh {role}.</p>}
+            {wholePage && (
+              <div className="notice">
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={allowFull}
+                    disabled={saving}
+                    onChange={(e) => {
+                      setAllowFull(e.target.checked);
+                      invalidate();
+                    }}
+                  />
+                  Cho phép dùng toàn ảnh {role}: toàn bộ nội dung ảnh/trang này có thể được gửi OpenAI. Chỉ
+                  chọn khi phù hợp.
+                </label>
+              </div>
+            )}
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={confirmed}
+                disabled={!validRoi || saving}
+                onChange={(e) => {
+                  setConfirmed(e.target.checked);
+                  if (!e.target.checked) invalidate();
+                }}
+              />
+              Tôi xác nhận vùng con dấu {role} đã chọn
+            </label>
+            {error && <ErrorBox error={new Error(error)} />}
+            <Button
+              className="w-full"
+              disabled={!validRoi || !confirmed || (wholePage && !allowFull) || saving || !!saved}
+              onClick={() => void save()}
+            >
+              {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
+              {saved ? `Ảnh ${role} đã sẵn sàng` : `Lưu ảnh ${role} để so khớp`}
+            </Button>
+          </div>
+          <div className="demo-crop-preview">
+            <span>{saved ? `Phiên bản ${role} đã lưu` : `Xem trước vùng ${role} sau xử lý`}</span>
+            {saved ? (
+              <img src={previewUrl(saved.asset.id)} alt={`Ảnh ${role} đã chuẩn bị`} />
+            ) : preview ? (
+              <img src={preview} alt={`Xem trước ảnh ${role}`} />
+            ) : (
+              <p>{previewBusy ? 'Đang xử lý bản xem trước…' : 'Bản xem trước xuất hiện khi có vùng chọn.'}</p>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
