@@ -85,6 +85,24 @@ class ImpressionIn(StrictModel):
     status: Literal["active", "inactive", "deleted"] = "active"
 
 
+class ReferenceIntakeIn(StrictModel):
+    image_asset_id: uuid.UUID
+    organization_id: uuid.UUID | None = None
+    organization_name: str | None = Field(default=None, min_length=1, max_length=500)
+    seal_design_id: uuid.UUID | None = None
+    name: str = Field(min_length=1, max_length=500)
+    seal_type: Literal["round", "rectangular", "other"] = "other"
+    note: str | None = Field(default=None, max_length=5000)
+
+    @model_validator(mode="after")
+    def one_organization(self):
+        if bool(self.organization_id) == bool(self.organization_name):
+            raise ValueError("Chọn tổ chức có sẵn hoặc nhập tên tổ chức mới.")
+        if self.seal_design_id and not self.organization_id:
+            raise ValueError("Mẫu có sẵn cần thuộc một tổ chức có sẵn.")
+        return self
+
+
 class DocumentIn(StrictModel):
     file_asset_id: uuid.UUID
     display_name: str = Field(min_length=1, max_length=500)

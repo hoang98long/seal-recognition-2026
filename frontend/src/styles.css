@@ -11,7 +11,7 @@
   color: #21334a;
   background: #f4f6f9;
   font-synthesis: none;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.5;
   font-weight: 400;
 }
@@ -61,20 +61,20 @@ h4 {
   margin: 0 0 12px;
 }
 h1 {
-  font-size: 28px;
+  font-size: 1.875rem;
   letter-spacing: -0.8px;
   font-weight: 700;
 }
 h2 {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 650;
 }
 h3 {
-  font-size: 15px;
+  font-size: 1.0625rem;
   font-weight: 650;
 }
 h4 {
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 600;
 }
 input:not([type='checkbox']):not([type='range']),
@@ -116,7 +116,7 @@ input[type='range'] {
 }
 label {
   display: block;
-  font-size: 13px;
+  font-size: 0.9375rem;
   font-weight: 550;
   color: var(--heading, #34475f);
   margin: 0 0 16px;
@@ -133,7 +133,7 @@ textarea {
 }
 code {
   font:
-    12px/1.5 Consolas,
+    0.875rem/1.5 Consolas,
     monospace;
   background: var(--subtle, #f0f4f8);
   padding: 3px 5px;
@@ -141,7 +141,7 @@ code {
   overflow-wrap: anywhere;
 }
 small {
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 pre {
   background: var(--subtle, #f1f5f9);
@@ -150,7 +150,7 @@ pre {
   overflow: auto;
   max-height: 420px;
   font:
-    12px/1.6 Consolas,
+    0.875rem/1.6 Consolas,
     monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -162,7 +162,7 @@ strong {
   color: #7a8899;
 }
 .small {
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .w-full {
   width: 100%;
@@ -192,7 +192,7 @@ strong {
   padding: 8px 15px;
   border-radius: 6px;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: 0.9375rem;
   font-weight: 600;
   transition:
     background 0.15s,
@@ -229,7 +229,7 @@ strong {
 .btn-sm {
   padding: 5px 10px;
   min-height: 31px;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .btn-icon {
   padding: 7px;
@@ -263,7 +263,7 @@ button:focus-visible {
   background: #101d2d;
 }
 .sidebar {
-  width: 236px;
+  width: 260px;
   flex-shrink: 0;
   background: #11263c;
   color: #99aec4;
@@ -277,7 +277,7 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 17px;
+  font-size: 1.1875rem;
   color: #fff;
   font-weight: 700;
   letter-spacing: 0.7px;
@@ -285,7 +285,7 @@ button:focus-visible {
 .sidebar > .brand {
   padding: 29px 20px 32px;
   gap: 9px;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .brand-symbol {
   border: 1px solid #5a7c94;
@@ -296,7 +296,7 @@ button:focus-visible {
 .brand small {
   display: block;
   color: #829bb1;
-  font-size: 8px;
+  font-size: 0.75rem;
   letter-spacing: 0.7px;
   font-weight: 400;
   margin-top: 5px;
@@ -305,7 +305,7 @@ button:focus-visible {
   color: #40c1d2;
 }
 .sidebar-label {
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 1.5px;
   margin: 6px 25px 13px;
@@ -313,6 +313,8 @@ button:focus-visible {
 }
 .sidebar nav {
   padding: 0 13px;
+  overflow-y: auto;
+  min-height: 0;
 }
 .nav-link {
   display: flex;
@@ -321,7 +323,7 @@ button:focus-visible {
   padding: 11px 12px;
   margin: 3px 0;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 500;
   border-left: 2px solid transparent;
 }
@@ -339,7 +341,7 @@ button:focus-visible {
 }
 .nav-tag {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 0.75rem;
   border: 1px solid #3e697d;
   color: #6fc6d1;
   border-radius: 3px;
@@ -347,13 +349,14 @@ button:focus-visible {
 }
 .sidebar-bottom {
   margin-top: auto;
+  flex-shrink: 0;
   padding: 28px 24px 18px;
 }
 .private-label {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #aac1d5;
 }
 .private-label svg {
@@ -362,14 +365,14 @@ button:focus-visible {
 .private-label small {
   display: block;
   color: #6e899f;
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-top: 3px;
 }
 .sidebar-version {
   display: flex;
   justify-content: space-between;
   margin-top: 21px;
-  font-size: 7px;
+  font-size: 0.75rem;
   color: #607d96;
   letter-spacing: 0.4px;
 }
@@ -377,7 +380,7 @@ button:focus-visible {
   color: #6c9b9b;
 }
 .main-shell {
-  margin-left: 236px;
+  margin-left: 260px;
   min-width: 0;
   flex: 1;
   display: flex;
@@ -401,7 +404,7 @@ button:focus-visible {
   align-items: center;
   gap: 11px;
   color: #8592a2;
-  font-size: 11px;
+  font-size: 0.8125rem;
   white-space: nowrap;
 }
 .breadcrumb strong {
@@ -416,7 +419,7 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #967639;
   padding: 5px 10px;
   background: #fff9ec;
@@ -457,10 +460,10 @@ button:focus-visible {
 }
 .user-chip strong {
   display: block;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .user-chip small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #8794a2;
 }
 .page-content {
@@ -480,11 +483,11 @@ button:focus-visible {
 }
 .page-header p:not(.eyebrow) {
   color: #7c899a;
-  font-size: 12px;
+  font-size: 0.875rem;
   margin: 0;
 }
 .eyebrow {
-  font-size: 9px;
+  font-size: 0.75rem;
   letter-spacing: 1.5px;
   font-weight: 700;
   color: #4b8797;
@@ -503,7 +506,7 @@ button:focus-visible {
   gap: 20px;
   border-top: 1px solid var(--border);
   padding: 16px 30px;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #8a98a7;
 }
 .app-footer > span:first-child {
@@ -527,12 +530,12 @@ button:focus-visible {
   gap: 12px;
 }
 .panel-heading h2 {
-  font-size: 13px;
+  font-size: 0.9375rem;
   margin: 0;
 }
 .panel-heading > span,
 .panel-heading > a {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8693a3;
 }
 .panel-heading > a {
@@ -559,7 +562,7 @@ button:focus-visible {
 }
 .empty p {
   max-width: 410px;
-  font-size: 12px;
+  font-size: 0.875rem;
   margin: 0 auto 18px;
 }
 .empty-icon {
@@ -582,7 +585,7 @@ button:focus-visible {
   padding: 13px 16px;
   border-radius: 6px;
   color: #8a733e;
-  font-size: 12px;
+  font-size: 0.875rem;
   margin: 16px 0;
 }
 .notice svg {
@@ -614,7 +617,7 @@ button:focus-visible {
   border-radius: 4px;
   padding: 3px 7px;
   background: var(--subtle);
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #6c7f93;
   white-space: nowrap;
@@ -646,7 +649,7 @@ button:focus-visible {
 }
 .toolbar > .muted {
   margin-left: auto;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .search-field {
   display: flex;
@@ -682,7 +685,7 @@ button:focus-visible {
   border-radius: 7px;
 }
 .filter-details summary {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #6f849a;
   cursor: pointer;
 }
@@ -704,13 +707,13 @@ table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 th {
   font-weight: 500;
   color: #8593a2;
   background: var(--subtle);
-  font-size: 10px;
+  font-size: 0.75rem;
   padding: 12px 19px;
   white-space: nowrap;
 }
@@ -721,7 +724,7 @@ td {
 }
 td small {
   display: block;
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8e9bab;
   margin-top: 4px;
 }
@@ -735,7 +738,7 @@ td a:hover {
 }
 .row-actions .check {
   margin: 0;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .entity-name {
   display: flex;
@@ -758,7 +761,7 @@ td a:hover {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #8492a2;
   padding: 18px 0;
 }
@@ -772,7 +775,7 @@ td a:hover {
 }
 .text-link {
   color: #13859b;
-  font-size: 12px;
+  font-size: 0.875rem;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -787,7 +790,7 @@ td a:hover {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 12px;
+  font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -841,7 +844,7 @@ td a:hover {
 }
 .field-error {
   color: #ae4556;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .upload-box {
   border: 1px dashed #c6d3df;
@@ -866,10 +869,10 @@ td a:hover {
   margin: 0 auto 12px;
 }
 .upload-box strong {
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .upload-box p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #91a0af;
   margin: 5px 0 14px;
 }
@@ -881,7 +884,7 @@ td a:hover {
   margin-bottom: 18px;
 }
 .tabs button {
-  font-size: 12px;
+  font-size: 0.875rem;
   padding: 12px 15px;
   white-space: nowrap;
   color: #8090a3;
@@ -900,7 +903,7 @@ td a:hover {
   gap: 15px;
   border-bottom: 1px solid var(--border);
   padding: 13px 0;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .metadata-list dt {
   color: #8996a5;
@@ -912,7 +915,7 @@ td a:hover {
 .simple-list {
   padding: 0 0 0 20px;
   color: #697f94;
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .simple-list li {
   margin: 9px 0;
@@ -937,24 +940,24 @@ td a:hover {
   border: 1px solid #3a6779;
   border-radius: 3px;
   padding: 4px 7px;
-  font-size: 7px;
+  font-size: 0.75rem;
   letter-spacing: 1px;
   margin-bottom: 16px;
 }
 .hero-panel h2 {
-  font-size: 27px;
+  font-size: 1.8125rem;
   line-height: 1.2;
   letter-spacing: -0.5px;
   color: white;
   margin-bottom: 12px;
 }
 .hero-panel p {
-  font-size: 11px;
+  font-size: 0.8125rem;
   line-height: 1.7;
   margin-bottom: 18px;
 }
 .hero-panel .btn {
-  font-size: 11px;
+  font-size: 0.8125rem;
   background: #e8f6f9;
   color: #196578;
   border: 0;
@@ -998,7 +1001,7 @@ td a:hover {
   stroke-width: 0.7;
 }
 .scan-label {
-  font-size: 7px;
+  font-size: 0.75rem;
   letter-spacing: 2.5px;
   color: #75a9b7;
   margin-top: 23px;
@@ -1021,7 +1024,7 @@ td a:hover {
   justify-content: space-between;
   gap: 8px;
   color: #7e91a3;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .stat-top svg {
   color: #8ca7b8;
@@ -1029,14 +1032,14 @@ td a:hover {
 }
 .stat-card > strong {
   display: block;
-  font-size: 30px;
+  font-size: 2rem;
   color: var(--heading);
   margin: 9px 0 4px;
   font-weight: 600;
   line-height: 1;
 }
 .stat-card > small {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #98a5b1;
 }
 .quick-grid {
@@ -1065,12 +1068,12 @@ td a:hover {
 }
 .quick-card strong {
   display: block;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .quick-card small {
   display: block;
   color: #90a0af;
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-top: 3px;
 }
 .quick-card:hover {
@@ -1083,7 +1086,7 @@ td a:hover {
 }
 .dashboard-bottom td {
   padding: 15px 18px;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .connection-card {
   padding: 22px;
@@ -1108,7 +1111,7 @@ td a:hover {
 }
 .connection-card > p {
   color: #95a3b2;
-  font-size: 10px;
+  font-size: 0.75rem;
   max-width: 250px;
   margin: 12px auto;
 }
@@ -1144,7 +1147,7 @@ td a:hover {
   overflow: hidden;
 }
 .login-story > .brand {
-  font-size: 18px;
+  font-size: 1.25rem;
   letter-spacing: 2px;
 }
 .login-story > div:nth-child(2) {
@@ -1157,7 +1160,7 @@ td a:hover {
   letter-spacing: 2px;
 }
 .login-story h1 {
-  font-size: 64px;
+  font-size: 4.125rem;
   line-height: 1.12;
   color: #f3f9fd;
   letter-spacing: -2px;
@@ -1167,7 +1170,7 @@ td a:hover {
   color: #61bdcb;
 }
 .login-lead {
-  font-size: 13px;
+  font-size: 0.9375rem;
   line-height: 1.9;
   color: #8eaebe;
 }
@@ -1175,7 +1178,7 @@ td a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #6e93a8;
 }
 .seal-art {
@@ -1203,7 +1206,7 @@ td a:hover {
 .seal-art span {
   position: absolute;
   bottom: 45px;
-  font-size: 10px;
+  font-size: 0.75rem;
   letter-spacing: 1px;
 }
 .login-form-wrap {
@@ -1216,12 +1219,12 @@ td a:hover {
   max-width: 100%;
 }
 .login-form h2 {
-  font-size: 27px;
+  font-size: 1.8125rem;
   letter-spacing: -0.5px;
   margin-bottom: 9px;
 }
 .login-form > p:not(.eyebrow) {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #9ba7b4;
   letter-spacing: 0.5px;
   margin-bottom: 32px;
@@ -1238,7 +1241,7 @@ td a:hover {
   margin-bottom: 27px;
 }
 .login-form label {
-  font-size: 12px;
+  font-size: 0.875rem;
   margin-bottom: 19px;
 }
 .login-form input:not([type='checkbox']) {
@@ -1246,7 +1249,7 @@ td a:hover {
   background: #fff;
 }
 .login-form .check {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #7b8b9f;
   margin-bottom: 24px;
 }
@@ -1260,13 +1263,13 @@ td a:hover {
   background: #f1f5f8;
   border: 1px solid #e1e8ef;
   color: #78899c;
-  font-size: 11px;
+  font-size: 0.8125rem;
   border-radius: 6px;
   padding: 14px 16px;
   line-height: 1.8;
 }
 .login-form > .login-foot {
-  font-size: 10px !important;
+  font-size: 0.75rem !important;
   text-align: center;
   line-height: 1.8;
   letter-spacing: 0 !important;
@@ -1306,7 +1309,7 @@ td a:hover {
   background: var(--panel);
   padding: 3px 8px;
   border: 1px solid var(--border);
-  font-size: 9px;
+  font-size: 0.75rem;
   border-radius: 4px;
 }
 .document-info {
@@ -1319,21 +1322,21 @@ td a:hover {
   color: #5d839a;
 }
 .document-name h3 {
-  font-size: 13px;
+  font-size: 0.9375rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
 }
 .document-info p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8c9bab;
   margin-top: 7px;
 }
 .document-info .text-link {
   display: block;
   margin-top: 14px;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .library-grid {
   display: grid;
@@ -1367,22 +1370,22 @@ td a:hover {
   top: 11px;
   right: 11px;
   background: var(--panel);
-  font-size: 9px;
+  font-size: 0.75rem;
   border: 1px solid var(--border);
 }
 .stamp-info {
   padding: 17px;
 }
 .stamp-info .eyebrow {
-  font-size: 8px;
+  font-size: 0.75rem;
   letter-spacing: 0.5px;
 }
 .stamp-info h3 {
-  font-size: 14px;
+  font-size: 1rem;
   margin: 6px 0;
 }
 .stamp-info > p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8e9ead;
   min-height: 30px;
 }
@@ -1412,7 +1415,7 @@ td a:hover {
 }
 .related-grid small,
 .related-grid p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8798a9;
 }
 .editor-grid {
@@ -1441,13 +1444,13 @@ td a:hover {
   margin-bottom: 20px;
 }
 .source-panel .upload-box strong {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .source-panel .upload-box p {
-  font-size: 8px;
+  font-size: 0.75rem;
 }
 .source-panel .upload-box .btn {
-  font-size: 10px;
+  font-size: 0.75rem;
   padding: 5px 8px;
   min-height: 30px;
 }
@@ -1456,15 +1459,15 @@ td a:hover {
   height: 31px;
 }
 .source-panel label {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .source-panel select {
-  font-size: 10px;
+  font-size: 0.75rem;
   min-height: 34px;
   padding: 6px;
 }
 .source-meta {
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #8c9aaa;
   overflow-wrap: anywhere;
 }
@@ -1482,7 +1485,7 @@ td a:hover {
   border-radius: 4px;
   padding: 7px;
   color: #8b9daf;
-  font-size: 8px;
+  font-size: 0.75rem;
 }
 .page-thumbs button.selected {
   border-color: #0ea5b7;
@@ -1497,7 +1500,7 @@ td a:hover {
   margin-bottom: 5px;
 }
 .source-panel .text-link {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .editor-center {
   min-width: 0;
@@ -1509,10 +1512,10 @@ td a:hover {
   padding: 14px 16px;
 }
 .editor-center .panel-heading h2 {
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .editor-center .panel-heading > span {
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .editor-placeholder {
   height: 500px;
@@ -1528,7 +1531,7 @@ td a:hover {
   margin: 20px 0 10px;
 }
 .editor-placeholder p {
-  font-size: 12px;
+  font-size: 0.875rem;
   max-width: 330px;
 }
 .canvas-tools {
@@ -1546,7 +1549,7 @@ td a:hover {
   gap: 3px;
 }
 .canvas-tools span {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #748a9e;
   min-width: 39px;
   text-align: center;
@@ -1594,14 +1597,14 @@ td a:hover {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 9px;
+  font-size: 0.75rem;
   color: #8d9eaf;
   padding: 8px 12px;
   background: var(--panel);
   border-top: 1px solid var(--border);
 }
 .canvas-foot span {
-  font-size: 8px;
+  font-size: 0.75rem;
 }
 .roi-tools {
   padding: 13px 15px;
@@ -1613,16 +1616,16 @@ td a:hover {
   margin: 13px 0 4px;
 }
 .roi-fields label {
-  font-size: 9px;
+  font-size: 0.75rem;
   margin-bottom: 7px;
 }
 .roi-fields input {
   min-height: 31px !important;
   padding: 5px 7px !important;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .roi-tools .check {
-  font-size: 10px;
+  font-size: 0.75rem;
   margin: 9px 0 0;
 }
 .processed-preview {
@@ -1638,7 +1641,7 @@ td a:hover {
   object-fit: contain;
 }
 .processed-preview p {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #8a9cac;
 }
 .saved-bar {
@@ -1649,7 +1652,7 @@ td a:hover {
   border: 1px solid #bfe3d4;
   border-radius: 6px;
   padding: 11px;
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #3f8e72;
   flex-wrap: wrap;
 }
@@ -1660,22 +1663,22 @@ td a:hover {
   margin-right: auto;
 }
 .parameters-content h3 {
-  font-size: 10px;
+  font-size: 0.75rem;
   letter-spacing: 0.5px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
   margin-top: 18px;
 }
 .parameters-content > label {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .parameters-content > label select {
-  font-size: 10px;
+  font-size: 0.75rem;
   min-height: 32px;
 }
 .slider-field {
   margin-bottom: 13px;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .slider-field > span {
   display: flex;
@@ -1689,7 +1692,7 @@ td a:hover {
   min-height: 26px !important;
   padding: 3px 5px !important;
   text-align: right;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .slider-field > input[type='range'] {
   margin-top: 8px;
@@ -1698,7 +1701,7 @@ td a:hover {
   opacity: 0.4;
 }
 .parameters-content .check {
-  font-size: 10px;
+  font-size: 0.75rem;
   margin-bottom: 13px;
 }
 .inline-buttons {
@@ -1710,14 +1713,14 @@ td a:hover {
   background: #fff8e7;
   border: 1px solid #efe2bb;
   border-radius: 4px;
-  font-size: 10px;
+  font-size: 0.75rem;
   line-height: 1.7;
   color: #9e8958;
   padding: 10px;
   margin-top: 20px;
 }
 .parameters-content > .small {
-  font-size: 9px;
+  font-size: 0.75rem;
   line-height: 1.8;
 }
 .stepper {
@@ -1732,7 +1735,7 @@ td a:hover {
   gap: 9px;
   color: #9aa7b7;
   flex: 1;
-  font-size: 10px;
+  font-size: 0.75rem;
   border-bottom: 2px solid var(--border);
   padding-bottom: 16px;
 }
@@ -1743,7 +1746,7 @@ td a:hover {
   height: 28px;
   border-radius: 50%;
   border: 1px solid #d9e2ea;
-  font-size: 10px;
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 .stepper > div.current {
@@ -1777,7 +1780,7 @@ td a:hover {
   margin-top: 24px;
 }
 .compare-upload > div:last-child p {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #8b9daf;
   line-height: 1.8;
 }
@@ -1809,7 +1812,7 @@ td a:hover {
   color: #7d91a6;
   padding: 8px 17px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .segmented button.active {
   background: var(--panel);
@@ -1839,16 +1842,16 @@ td a:hover {
 }
 .candidate-card > strong {
   display: block;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .candidate-card > small {
   display: block;
   color: #8095aa;
-  font-size: 10px;
+  font-size: 0.75rem;
   margin: 4px 0 12px;
 }
 .candidate-card .check {
-  font-size: 11px;
+  font-size: 0.8125rem;
   margin-bottom: 0;
 }
 .comparison-images {
@@ -1873,7 +1876,7 @@ td a:hover {
   padding: 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #4b718b;
 }
@@ -1892,7 +1895,7 @@ td a:hover {
 .comparison-images figure > label {
   max-width: 220px;
   margin: 12px auto 0;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .consent-box {
   border: 1px solid var(--border);
@@ -1903,11 +1906,11 @@ td a:hover {
   color: #7a8fa3;
 }
 .consent-box h3 {
-  font-size: 18px;
+  font-size: 1.25rem;
   margin-top: 13px;
 }
 .consent-box > p {
-  font-size: 12px;
+  font-size: 0.875rem;
   max-width: 700px;
 }
 .consent-box .check {
@@ -1922,7 +1925,7 @@ td a:hover {
   padding: 16px 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .call-summary strong {
   display: block;
@@ -1947,14 +1950,14 @@ td a:hover {
 }
 .analysis-ready > p {
   color: #8397a9;
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .analysis-ready > .btn {
   margin: 12px 5px;
 }
 .analysis-ready > small {
   display: block;
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8fa0b1;
   margin-top: 14px;
 }
@@ -1968,10 +1971,10 @@ td a:hover {
   max-width: 560px;
   flex: 1;
   margin: 0;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .result-toolbar > .muted {
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .result-summary {
   display: flex;
@@ -1994,21 +1997,21 @@ td a:hover {
   color: #348b7b;
 }
 .score-circle strong {
-  font-size: 32px;
+  font-size: 2.125rem;
   line-height: 1.2;
 }
 .score-circle > span {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #87b1a9;
 }
 .result-summary p:not(.eyebrow) {
-  font-size: 13px;
+  font-size: 0.9375rem;
   color: #72899d;
   max-width: 790px;
 }
 .result-summary small {
   color: #8da2b4;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .result-images-panel {
   margin-bottom: 22px;
@@ -2031,14 +2034,14 @@ td a:hover {
 .image-note {
   margin: 0 20px 20px;
   color: #899fb2;
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .overlay-area {
   padding: 20px;
 }
 .overlay-area > label {
   max-width: 400px;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .overlay-images {
   position: relative;
@@ -2082,14 +2085,14 @@ td a:hover {
   display: flex;
   gap: 12px;
   align-items: center;
-  font-size: 10px;
+  font-size: 0.75rem;
   margin-bottom: 12px;
 }
 .evidence-list h3 {
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .evidence-list p {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #7c91a4;
   margin: 0;
 }
@@ -2115,7 +2118,7 @@ td a:hover {
   gap: 10px;
   border-bottom: 1px solid var(--border);
   padding: 12px;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .annotation-list small {
   margin-left: auto;
@@ -2141,7 +2144,7 @@ td a:hover {
   border-radius: 6px;
   padding: 13px 14px;
   text-align: left;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #7d90a4;
 }
 .settings-nav button.active {
@@ -2156,7 +2159,7 @@ td a:hover {
 }
 .settings-content > p {
   color: #8799ac;
-  font-size: 12px;
+  font-size: 0.875rem;
   line-height: 1.8;
 }
 .settings-title {
@@ -2169,7 +2172,7 @@ td a:hover {
   margin: 0 0 5px;
 }
 .settings-title p {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #8a9caf;
   margin: 0;
 }
@@ -2180,21 +2183,21 @@ td a:hover {
   align-items: center;
   border-top: 1px solid var(--border);
   padding: 20px 0;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .setting-row strong {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: var(--heading);
 }
 .setting-row p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #92a2b4;
   margin: 5px 0 0;
 }
 .setting-row > span {
   white-space: nowrap;
   color: #748b9f;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .algorithm-cards {
   display: grid;
@@ -2212,10 +2215,10 @@ td a:hover {
   margin-bottom: 14px;
 }
 .algorithm-cards h3 {
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .algorithm-cards p {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #8b9fb2;
 }
 .password-form {
@@ -2223,7 +2226,7 @@ td a:hover {
   margin-top: 27px;
 }
 .password-form label {
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .audit-list {
   max-height: 420px;
@@ -2235,7 +2238,7 @@ td a:hover {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 10px;
+  font-size: 0.75rem;
   padding: 12px;
   border-bottom: 1px solid var(--border);
 }
@@ -2260,10 +2263,10 @@ td a:hover {
     padding: 38px 42px;
   }
   .hero-panel h2 {
-    font-size: 32px;
+    font-size: 2.125rem;
   }
   .hero-panel p {
-    font-size: 13px;
+    font-size: 0.9375rem;
   }
   .hero-graphic {
     width: 340px;
@@ -2282,13 +2285,13 @@ td a:hover {
   }
   .sidebar > .brand {
     padding-left: 15px;
-    font-size: 12px;
+    font-size: 0.875rem;
   }
   .brand-symbol {
     padding: 5px;
   }
   .sidebar > .brand small {
-    font-size: 7px;
+    font-size: 0.75rem;
   }
   .topbar {
     padding: 0 20px;
@@ -2308,17 +2311,17 @@ td a:hover {
   }
   .header-actions .btn {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .page-header h1 {
-    font-size: 24px;
+    font-size: 1.625rem;
   }
   .quick-card {
     padding: 14px;
     gap: 9px;
   }
   .quick-card small {
-    font-size: 8px;
+    font-size: 0.75rem;
   }
   .quick-card > svg:first-child {
     width: 21px;
@@ -2336,7 +2339,7 @@ td a:hover {
     padding: 12px 5px;
   }
   .source-panel .upload-box .btn {
-    font-size: 8px;
+    font-size: 0.75rem;
   }
   .hero-graphic {
     width: 210px;
@@ -2348,7 +2351,7 @@ td a:hover {
 @media (max-width: 1000px) {
   .sidebar {
     transform: translateX(-100%);
-    width: 236px;
+    width: 260px;
     transition: transform 0.2s;
   }
   .sidebar.open {
@@ -2374,7 +2377,7 @@ td a:hover {
     padding: 40px 8%;
   }
   .login-story h1 {
-    font-size: 52px;
+    font-size: 3.375rem;
   }
   .login-form-wrap {
     padding: 40px;
@@ -2395,7 +2398,7 @@ td a:hover {
     min-height: 230px;
   }
   .stepper > div {
-    font-size: 9px;
+    font-size: 0.75rem;
     gap: 6px;
   }
   .stepper > div > span {
@@ -2411,7 +2414,7 @@ td a:hover {
     gap: 5px;
   }
   .connection {
-    font-size: 8px;
+    font-size: 0.75rem;
     padding: 5px 7px;
   }
   .user-chip {
@@ -2422,7 +2425,17 @@ td a:hover {
   }
   .breadcrumb {
     gap: 6px;
-    font-size: 10px;
+    font-size: 0.75rem;
+    min-width: 0;
+  }
+  .breadcrumb strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .breadcrumb > svg,
+  .topbar-actions {
+    flex-shrink: 0;
   }
   .page-content {
     padding: 22px 15px;
@@ -2432,10 +2445,10 @@ td a:hover {
     gap: 16px;
   }
   .page-header h1 {
-    font-size: 24px;
+    font-size: 1.625rem;
   }
   .page-header p:not(.eyebrow) {
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .header-actions {
     width: 100%;
@@ -2453,7 +2466,7 @@ td a:hover {
     padding: 26px;
   }
   .hero-panel h2 {
-    font-size: 24px;
+    font-size: 1.625rem;
   }
   .hero-graphic {
     display: none;
@@ -2530,7 +2543,7 @@ td a:hover {
   }
   .stepper > div {
     flex-direction: column;
-    font-size: 8px;
+    font-size: 0.75rem;
     align-items: flex-start;
   }
   .stepper strong {
@@ -2554,13 +2567,13 @@ td a:hover {
     height: 80px;
   }
   .score-circle strong {
-    font-size: 26px;
+    font-size: 1.75rem;
   }
   .result-summary h2 {
-    font-size: 17px;
+    font-size: 1.1875rem;
   }
   .result-summary p:not(.eyebrow) {
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .result-toolbar {
     flex-wrap: wrap;
@@ -2593,13 +2606,13 @@ td a:hover {
   .settings-nav button {
     white-space: nowrap;
     padding: 10px;
-    font-size: 10px;
+    font-size: 0.75rem;
   }
   .settings-content {
     padding: 20px;
   }
   .settings-title h2 {
-    font-size: 17px;
+    font-size: 1.1875rem;
   }
   .setting-row {
     gap: 12px;
@@ -2612,7 +2625,7 @@ td a:hover {
   }
   .metadata-list > div {
     grid-template-columns: 130px 1fr;
-    font-size: 11px;
+    font-size: 0.8125rem;
   }
   .annotation-tools {
     flex-wrap: wrap;
@@ -2627,8 +2640,9 @@ td a:hover {
     margin-left: 0;
   }
   .app-footer {
-    font-size: 7px;
+    font-size: 0.75rem;
     padding: 14px 15px;
+    flex-wrap: wrap;
   }
   .modal-backdrop {
     padding: 15px;
@@ -2644,6 +2658,11 @@ td a:hover {
   }
   .canvas-scroll {
     height: 400px;
+  }
+}
+@media (max-width: 600px) {
+  .topbar-actions .connection {
+    display: none;
   }
 }
 @media print {
@@ -2679,10 +2698,10 @@ td a:hover {
     display: block;
   }
   body {
-    font-size: 12px;
+    font-size: 0.875rem;
   }
   .notice {
-    font-size: 10px;
+    font-size: 0.75rem;
   }
   @page {
     size: A4;
@@ -2707,7 +2726,7 @@ td a:hover {
   z-index: 45;
 }
 .notification-popover h3 {
-  font-size: 13px;
+  font-size: 0.9375rem;
 }
 .notification-popover > a {
   display: flex;
@@ -2716,7 +2735,7 @@ td a:hover {
   flex-wrap: wrap;
   border-top: 1px solid var(--border);
   padding: 12px 0;
-  font-size: 11px;
+  font-size: 0.8125rem;
 }
 .notification-popover > a:hover {
   color: #0891b2;
@@ -2729,10 +2748,10 @@ td a:hover {
   display: block;
   width: 100%;
   color: #8497aa;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .notification-popover p {
-  font-size: 11px;
+  font-size: 0.8125rem;
   color: #8095a8;
   line-height: 1.7;
 }

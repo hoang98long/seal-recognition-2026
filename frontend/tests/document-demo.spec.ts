@@ -33,8 +33,8 @@ async function login(page: Page) {
   await page.getByLabel('Mật khẩu', { exact: true }).fill('Demo-e2e-password-2026');
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Tổng quan hệ thống', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Demo văn bản & ảnh dấu', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Văn bản & ảnh dấu', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Văn bản & ảnh dấu', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'So khớp văn bản & ảnh dấu', exact: true })).toBeVisible();
 }
 async function preparePair(page: Page) {
   const png = await page.evaluate(() => {
@@ -65,14 +65,13 @@ async function preparePair(page: Page) {
   const k = page.getByRole('region', { name: 'Chuẩn bị ảnh K', exact: true });
   await q.getByRole('combobox', { name: 'Trang / khung ảnh Q', exact: true }).selectOption('2');
   await q.getByRole('button', { name: 'Gợi ý vùng mực đỏ Q', exact: true }).click();
+  await q.getByText('Chỉnh tọa độ và chất lượng ảnh', { exact: true }).click();
   await q.getByRole('spinbutton', { name: 'Độ sáng Q', exact: true }).fill('12');
-  await q.getByLabel('Tôi xác nhận vùng con dấu Q đã chọn', { exact: true }).check();
-  await q.getByRole('button', { name: 'Lưu ảnh Q để so khớp', exact: true }).click();
+  await q.getByRole('button', { name: 'Xác nhận vùng dấu Q', exact: true }).click();
   await expect(q.getByRole('button', { name: 'Ảnh Q đã sẵn sàng', exact: true })).toBeDisabled();
   await k.getByRole('button', { name: 'Dùng toàn ảnh K', exact: true }).click();
   await k.getByRole('checkbox', { name: /Cho phép dùng toàn ảnh K/ }).check();
-  await k.getByLabel('Tôi xác nhận vùng con dấu K đã chọn', { exact: true }).check();
-  await k.getByRole('button', { name: 'Lưu ảnh K để so khớp', exact: true }).click();
+  await k.getByRole('button', { name: 'Xác nhận vùng dấu K', exact: true }).click();
   await expect(k.getByRole('button', { name: 'Ảnh K đã sẵn sàng', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Tiếp tục so khớp', exact: true }).click();
   await expect(page.getByAltText('Ảnh Q sẽ gửi OpenAI', { exact: true })).toBeVisible();
@@ -96,10 +95,10 @@ test('Demo riêng: PDF hai trang + ảnh tải lên → ROI → OpenAI SDK mock 
     { exact: true },
   );
   await expect(page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true })).toBeDisabled();
-  await page.getByLabel('Tên phiên demo', { exact: true }).fill('Demo PDF hai trang');
+  await page.getByLabel('Tên phiên so khớp', { exact: true }).fill('Demo PDF hai trang');
   await consent.check();
   await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
-  const result = page.getByRole('region', { name: 'Kết quả demo', exact: true });
+  const result = page.getByRole('region', { name: 'Kết quả so khớp', exact: true });
   await expect(result.getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true })).toBeVisible();
   await expect(
     result.getByText('DEMO — không phải AI thật. Hai ảnh thử nghiệm có vòng tròn và chữ DEMO.', {
@@ -157,7 +156,7 @@ test('Thiếu key: vẫn chuẩn bị Q/K nhưng không tự gửi hoặc tạo 
     .check();
   await expect(page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true })).toBeDisabled();
   await expect(page.getByText(/Chưa cấu hình OPENAI_API_KEY trong backend/)).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Kết quả demo', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Kết quả so khớp', exact: true })).toHaveCount(0);
   expect(calls).toBe(0);
 });
 
@@ -195,14 +194,14 @@ test('Lỗi upstream: hiển thị lỗi, không có điểm giả; người dù
   await expect(
     page.getByRole('alert').filter({ hasText: 'DEMO: OpenAI đang giới hạn tần suất. Thử lại sau.' }),
   ).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Kết quả demo', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Kết quả so khớp', exact: true })).toHaveCount(0);
   await expect(consent).not.toBeChecked();
   expect(attempts).toBe(1);
   await consent.check();
   await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
   await expect(
     page
-      .getByRole('region', { name: 'Kết quả demo', exact: true })
+      .getByRole('region', { name: 'Kết quả so khớp', exact: true })
       .getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true }),
   ).toBeVisible();
   expect(attempts).toBe(2);

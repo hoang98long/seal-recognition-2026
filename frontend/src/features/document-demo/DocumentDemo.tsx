@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,15 +13,17 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { api, post, previewUrl } from '../../lib/api';
-import type { Analysis, Asset, Document, OpenAIStatus, Result } from '../../types';
+import type { Analysis, Asset, Document, Impression, OpenAIStatus, Result } from '../../types';
 import { Button } from '../../components/ui/button';
 import { Disclaimer, ErrorBox, Loading, PageHeader, UploadBox } from '../../components/shared';
 import { useAuth } from '../auth/Auth';
 import { StampPreparation, type PreparedStamp } from './StampPreparation';
 import { DemoResults } from './DemoResults';
+import { ReferencePicker } from './ReferencePicker';
 import './demo.css';
 
 export function DocumentDemo() {
+  const [search, setSearch] = useSearchParams();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [step, setStep] = useState(1);
@@ -34,7 +36,12 @@ export function DocumentDemo() {
   const [referenceVersion, setReferenceVersion] = useState(0);
   const [queryStamp, setQueryStamp] = useState<PreparedStamp | null>(null);
   const [referenceStamp, setReferenceStamp] = useState<PreparedStamp | null>(null);
-  const [title, setTitle] = useState('Demo đối chiếu văn bản & ảnh dấu');
+  const [title, setTitle] = useState('Đối chiếu văn bản & ảnh dấu');
+  const [referenceMode, setReferenceMode] = useState<'upload' | 'library'>(
+    search.get('reference') ? 'library' : 'upload',
+  );
+  const [libraryReference, setLibraryReference] = useState<Impression | null>(null);
+  const [loadingReference, setLoadingReference] = useState(false);
   const [consent, setConsent] = useState(false);
   const [analysisId, setAnalysisId] = useState('');
   const [error, setError] = useState('');
@@ -44,7 +51,35 @@ export function DocumentDemo() {
   const [savingK, setSavingK] = useState(false);
   const [analysing, setAnalysing] = useState(false);
   const submitting = useRef(false);
-  const busy = uploadingQ || uploadingK || savingQ || savingK || analysing;
+  const busy = uploadingQ || uploadingK || savingQ || savingK || analysing || loadingReference;
+  const linkedReference = search.get('reference');
+  useEffect(() => {
+    if (!linkedReference) {
+      setLoadingReference(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingReference(true);
+    (async () => {
+      const item = await api<Impression>(`/seal-impressions/${linkedReference}`);
+      const prepared = await api<PreparedStamp | null>(`/preprocessing/by-output/${item.image_asset_id}`);
+      const asset = prepared?.asset || (await api<Asset>(`/assets/${item.image_asset_id}`));
+      if (!cancelled) {
+        setReference(asset);
+        setReferenceStamp(prepared);
+        setLibraryReference(item);
+      }
+    })()
+      .catch((e) => {
+        if (!cancelled) setError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingReference(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedReference]);
   const status = useQuery({
     queryKey: ['openai-status'],
     queryFn: () => api<OpenAIStatus>('/settings/openai/status'),
@@ -84,7 +119,9 @@ export function DocumentDemo() {
     setReferenceStamp(null);
     resetSession();
     setStep(1);
-    setTitle('Demo đối chiếu văn bản & ảnh dấu');
+    setTitle('Đối chiếu văn bản & ảnh dấu');
+    setLibraryReference(null);
+    setSearch({}, { replace: true });
   }
   async function analyse() {
     if (
@@ -102,7 +139,13 @@ export function DocumentDemo() {
     setConsent(false);
     let id = analysisId;
     try {
-      const candidates = [{ reference_asset_id: referenceStamp.asset.id }];
+      const candidates = [
+        {
+          reference_asset_id: referenceStamp.asset.id,
+          reference_impression_id:
+            libraryReference?.image_asset_id === referenceStamp.asset.id ? libraryReference.id : null,
+        },
+      ];
       if (!id) {
         const session = await post<Analysis>('/analyses', {
           title: title.trim(),
@@ -147,13 +190,13 @@ export function DocumentDemo() {
   return (
     <>
       <PageHeader
-        eyebrow="DEMO TỪ TẢI LÊN ĐẾN KẾT QUẢ"
-        title="Văn bản & ảnh dấu"
-        description="So sánh con dấu trong một văn bản với một ảnh dấu tải lên — thực hiện trọn luồng tại đây."
+        eyebrow="SO KHỚP VỚI OPENAI"
+        title="So khớp văn bản & ảnh dấu"
+        description="Tải văn bản, chọn dấu đối chiếu và nhận kết quả trong cùng một quy trình."
       >
         <Button variant="outline" disabled={busy} onClick={newDemo}>
           <RefreshCw size={16} />
-          Bắt đầu demo mới
+          So khớp mới
         </Button>
       </PageHeader>
       {user?.role === 'viewer' ? (
@@ -170,8 +213,8 @@ export function DocumentDemo() {
             <div>
               <h2>Một văn bản. Một ảnh mẫu. Một lần đối chiếu.</h2>
               <p>
-                Tải dữ liệu, chọn đúng trang và vùng dấu Q/K, kiểm tra trước khi gửi. Không cần tạo tổ chức
-                hoặc mẫu trong thư viện.
+                Tải ảnh dấu trực tiếp hoặc chọn dấu của tổ chức trong thư viện. Hệ thống gợi ý vùng dấu để bạn
+                kiểm tra và xác nhận.
               </p>
             </div>
             <span className="demo-local-badge">
@@ -180,21 +223,19 @@ export function DocumentDemo() {
             </span>
           </section>
           <div className="stepper demo-stepper">
-            {['Tải văn bản & ảnh dấu', 'Chọn vùng và chuẩn bị Q/K', 'So khớp & xem kết quả'].map(
-              (label, i) => (
-                <div key={label} className={step === i + 1 ? 'current' : step > i + 1 ? 'done' : ''}>
-                  <span>{step > i + 1 ? <Check size={16} /> : `0${i + 1}`}</span>
-                  <strong>{label}</strong>
-                </div>
-              ),
-            )}
+            {['Chọn văn bản & dấu mẫu', 'Kiểm tra vùng dấu', 'So khớp & kết quả'].map((label, i) => (
+              <div key={label} className={step === i + 1 ? 'current' : step > i + 1 ? 'done' : ''}>
+                <span>{step > i + 1 ? <Check size={16} /> : `0${i + 1}`}</span>
+                <strong>{label}</strong>
+              </div>
+            ))}
           </div>
           <div className="demo-provider-status">
             <span className={`badge ${status.data?.is_configured ? 'completed' : 'draft'}`}>
               {status.isPending
                 ? 'Đang kiểm tra cấu hình OpenAI…'
                 : status.data?.is_configured
-                  ? `OpenAI đã cấu hình · ${status.data.model}`
+                  ? 'OpenAI sẵn sàng'
                   : 'Chưa cấu hình khóa OpenAI'}
             </span>
             <button
@@ -213,6 +254,7 @@ export function DocumentDemo() {
               key và khởi động lại backend để so khớp. <Link to="/settings">Xem cài đặt</Link>
             </div>
           )}
+          {step !== 3 && error && <ErrorBox error={new Error(error)} />}
           {step === 1 && (
             <div className="demo-upload-grid">
               <section className="panel demo-upload-card" aria-label="Văn bản cần kiểm tra">
@@ -224,6 +266,7 @@ export function DocumentDemo() {
                   </div>
                 </div>
                 <UploadBox
+                  disabled={loadingReference}
                   label="Tải văn bản có con dấu"
                   onBusyChange={setUploadingQ}
                   onUploaded={async (asset) => {
@@ -232,6 +275,7 @@ export function DocumentDemo() {
                       display_name: asset.original_filename,
                     });
                     setSource({ asset, document });
+                    setTitle(`Đối chiếu ${asset.original_filename}`.slice(0, 250));
                     setSourceVersion((v) => v + 1);
                     setQueryStamp(null);
                     resetSession();
@@ -244,25 +288,78 @@ export function DocumentDemo() {
                   <Image size={25} />
                   <div>
                     <h2>2. Ảnh dấu đối chiếu</h2>
-                    <p>Tải một ảnh con dấu mẫu để đối chiếu trực tiếp (K).</p>
+                    <p>Tải ảnh mới hoặc dùng lại dấu đã lưu của tổ chức.</p>
                   </div>
                 </div>
-                <UploadBox
-                  label="Tải ảnh dấu đối chiếu"
-                  kind="original_stamp"
-                  accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
-                  description="PNG, JPG, TIFF hoặc WEBP; có thể chọn khung TIFF"
-                  onBusyChange={setUploadingK}
-                  onUploaded={(asset) => {
-                    if (!asset.media_type.startsWith('image/'))
-                      throw new Error('Ảnh K phải là PNG, JPG, TIFF hoặc WEBP.');
-                    setReference(asset);
-                    setReferenceVersion((v) => v + 1);
-                    setReferenceStamp(null);
-                    resetSession();
-                  }}
-                />
-                {reference && <SourceFile asset={reference} />}
+                <div className="segmented">
+                  <button
+                    className={referenceMode === 'upload' ? 'active' : ''}
+                    disabled={busy}
+                    onClick={() => setReferenceMode('upload')}
+                  >
+                    Tải ảnh lên
+                  </button>
+                  <button
+                    className={referenceMode === 'library' ? 'active' : ''}
+                    disabled={busy}
+                    onClick={() => setReferenceMode('library')}
+                  >
+                    Chọn từ thư viện
+                  </button>
+                </div>
+                {referenceMode === 'upload' ? (
+                  <UploadBox
+                    disabled={loadingReference}
+                    label="Tải ảnh dấu đối chiếu"
+                    kind="original_stamp"
+                    accept=".png,.jpg,.jpeg,.tif,.tiff,.webp"
+                    description="PNG, JPG, TIFF hoặc WEBP; có thể chọn khung TIFF"
+                    onBusyChange={setUploadingK}
+                    onUploaded={(asset) => {
+                      if (!asset.media_type.startsWith('image/'))
+                        throw new Error('Ảnh K phải là PNG, JPG, TIFF hoặc WEBP.');
+                      setReference(asset);
+                      setLibraryReference(null);
+                      setSearch({}, { replace: true });
+                      setReferenceVersion((v) => v + 1);
+                      setReferenceStamp(null);
+                      resetSession();
+                    }}
+                  />
+                ) : (
+                  <ReferencePicker
+                    selected={libraryReference?.id || ''}
+                    disabled={busy}
+                    onSelect={async (item) => {
+                      setLoadingReference(true);
+                      try {
+                        const prepared = await api<PreparedStamp | null>(
+                          `/preprocessing/by-output/${item.image_asset_id}`,
+                        );
+                        const asset = prepared?.asset || (await api<Asset>(`/assets/${item.image_asset_id}`));
+                        setReference(asset);
+                        setReferenceStamp(prepared);
+                        setLibraryReference(item);
+                        setReferenceVersion((v) => v + 1);
+                        resetSession();
+                        setSearch({}, { replace: true });
+                      } finally {
+                        setLoadingReference(false);
+                      }
+                    }}
+                  />
+                )}
+                {loadingReference && <Loading />}
+                {reference && (
+                  <>
+                    <SourceFile asset={reference} />
+                    {libraryReference && (
+                      <p className="reference-selected">
+                        Đã chọn: {libraryReference.organization_name} · {libraryReference.design_name}
+                      </p>
+                    )}
+                  </>
+                )}
               </section>
             </div>
           )}
@@ -276,14 +373,29 @@ export function DocumentDemo() {
                 onPrepared={preparedQ}
                 onBusyChange={setSavingQ}
               />
-              <StampPreparation
-                key={`K-${reference.id}-${referenceVersion}`}
-                asset={reference}
-                role="K"
-                initial={referenceStamp}
-                onPrepared={preparedK}
-                onBusyChange={setSavingK}
-              />
+              {libraryReference && referenceStamp ? (
+                <section className="panel ready-reference" aria-label="Dấu thư viện đã sẵn sàng">
+                  <h2>
+                    <Check size={20} /> Dấu mẫu đã sẵn sàng
+                  </h2>
+                  <img src={previewUrl(referenceStamp.asset.id)} alt="Dấu đối chiếu từ thư viện" />
+                  <h3>{libraryReference.design_name}</h3>
+                  <p>{libraryReference.organization_name}</p>
+                  <p className="muted">Sử dụng vùng dấu đã xác nhận trong thư viện.</p>
+                  <Button variant="outline" onClick={() => preparedK(null)}>
+                    Chỉnh lại vùng dấu mẫu
+                  </Button>
+                </section>
+              ) : (
+                <StampPreparation
+                  key={`K-${reference.id}-${referenceVersion}`}
+                  asset={reference}
+                  role="K"
+                  initial={referenceStamp}
+                  onPrepared={preparedK}
+                  onBusyChange={setSavingK}
+                />
+              )}
             </div>
           )}
           {step === 3 && queryStamp && referenceStamp && (
@@ -315,7 +427,7 @@ export function DocumentDemo() {
                 </div>
                 <div className="demo-review-form">
                   <label>
-                    Tên phiên demo
+                    Tên phiên so khớp
                     <input
                       value={title}
                       maxLength={250}
@@ -323,20 +435,23 @@ export function DocumentDemo() {
                       onChange={(e) => setTitle(e.target.value)}
                     />
                   </label>
-                  <div className="call-summary">
-                    <span>
-                      Nhà cung cấp<strong>OpenAI Vision</strong>
-                    </span>
-                    <span>
-                      Model<strong>{status.data?.model || 'Đang tải…'}</strong>
-                    </span>
-                    <span>
-                      Số yêu cầu<strong>1 cặp Q/K</strong>
-                    </span>
-                    <span>
-                      Chi phí<strong>Chưa xác định</strong>
-                    </span>
-                  </div>
+                  <details className="demo-extra">
+                    <summary>Thông tin xử lý</summary>
+                    <div className="call-summary">
+                      <span>
+                        Nhà cung cấp<strong>OpenAI Vision</strong>
+                      </span>
+                      <span>
+                        Model<strong>{status.data?.model || 'Đang tải…'}</strong>
+                      </span>
+                      <span>
+                        Số yêu cầu<strong>1 cặp Q/K</strong>
+                      </span>
+                      <span>
+                        Chi phí<strong>Chưa xác định</strong>
+                      </span>
+                    </div>
+                  </details>
                   {(queryStamp.asset.source_metadata.whole_source_confirmed ||
                     referenceStamp.asset.source_metadata.whole_source_confirmed) && (
                     <div className="notice">
@@ -360,8 +475,7 @@ export function DocumentDemo() {
                     Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.
                   </label>
                   <p className="muted small">
-                    Khóa lấy từ backend/.env, không đưa vào trình duyệt. Mỗi lần chạy cần xác nhận lại; kết
-                    quả mới được lưu thành phiên bản riêng.
+                    Mỗi lần chạy cần xác nhận lại. Kết quả được lưu tự động để xem và xuất báo cáo.
                   </p>
                   {error && <ErrorBox error={new Error(error)} />}
                   <Button
@@ -423,7 +537,7 @@ export function DocumentDemo() {
                 : step === 2
                   ? queryStamp && referenceStamp
                     ? 'Q và K đã được lưu, sẵn sàng đối chiếu.'
-                    : 'Chọn ROI và lưu cả Q, K trước khi tiếp tục.'
+                    : 'Kiểm tra và xác nhận vùng dấu ở cả hai ảnh.'
                   : 'Kết quả và báo cáo được lưu trong lịch sử.'}
             </span>
             {step < 3 && (

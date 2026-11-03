@@ -178,6 +178,7 @@ export function UploadBox({
   label = 'Tải tài liệu',
   description = 'PDF, PNG, JPG, TIFF hoặc WEBP',
   onBusyChange,
+  disabled = false,
 }: {
   onUploaded: (a: Asset) => void | Promise<void>;
   kind?: string;
@@ -186,12 +187,13 @@ export function UploadBox({
   label?: string;
   description?: string;
   onBusyChange?: (busy: boolean) => void;
+  disabled?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   async function files(list: FileList | null) {
-    if (!list?.length || busy) return;
+    if (!list?.length || busy || disabled) return;
     setBusy(true);
     onBusyChange?.(true);
     try {
@@ -218,7 +220,7 @@ export function UploadBox({
       onDrop={(e) => {
         e.preventDefault();
         setDrag(false);
-        if (!busy) void files(e.dataTransfer.files);
+        if (!busy && !disabled) void files(e.dataTransfer.files);
       }}
     >
       <input
@@ -227,13 +229,14 @@ export function UploadBox({
         accept={accept}
         aria-label={label}
         multiple={multiple}
+        disabled={busy || disabled}
         hidden
         onChange={(e) => void files(e.target.files)}
       />
       <div className="upload-icon">{busy ? <LoaderCircle className="spin" /> : <FileUp />}</div>
       <strong>{busy ? 'Đang kiểm tra và tải tệp…' : 'Kéo thả tài liệu vào đây'}</strong>
       <p>{description}</p>
-      <Button variant="outline" disabled={busy} onClick={() => ref.current?.click()}>
+      <Button variant="outline" disabled={busy || disabled} onClick={() => ref.current?.click()}>
         Chọn tệp từ máy
       </Button>
     </div>

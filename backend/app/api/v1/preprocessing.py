@@ -132,3 +132,15 @@ def get_run(ident: uuid.UUID, user: User = Depends(current_user), db: Session = 
     run = record(db, PreprocessingRun, ident)
     authorized_asset(db, run.output_asset_id, user)
     return public(run)
+
+
+@router.get("/by-output/{asset_id}")
+def by_output(asset_id: uuid.UUID, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    asset = authorized_asset(db, asset_id, user)
+    run = db.scalar(
+        select(PreprocessingRun)
+        .where(PreprocessingRun.output_asset_id == asset.id)
+        .order_by(PreprocessingRun.created_at.desc())
+        .limit(1)
+    )
+    return {"asset": public(asset), "run": public(run)} if run else None

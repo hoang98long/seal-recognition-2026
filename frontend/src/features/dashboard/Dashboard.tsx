@@ -36,13 +36,13 @@ export function Dashboard() {
         description="Quản lý tài liệu, chuẩn bị ảnh và đối chiếu con dấu trong một quy trình."
       >
         <Button variant="outline" asChild>
-          <Link to="/demo/document-stamp">
+          <Link to="/compare/document-stamp">
             <FileText size={17} />
-            Demo văn bản & ảnh dấu
+            Văn bản & ảnh dấu
           </Link>
         </Button>
         <Button asChild>
-          <Link to="/compare/new">
+          <Link to="/compare/document-stamp">
             <ScanLine size={17} />
             So khớp mới
           </Link>
@@ -64,8 +64,8 @@ export function Dashboard() {
             Mọi phiên xử lý đều lưu lại nguồn ảnh và thông số đã dùng.
           </p>
           <Button asChild>
-            <Link to="/documents">
-              Bắt đầu với tài liệu
+            <Link to="/compare/document-stamp">
+              So khớp văn bản
               <ArrowRight size={16} />
             </Link>
           </Button>
@@ -100,8 +100,13 @@ export function Dashboard() {
       <div className="quick-grid">
         {[
           ['/documents', FolderUp, 'Tải tài liệu', 'PDF, ảnh quét hoặc ảnh chụp'],
-          ['/compare/new', ScanLine, 'So khớp con dấu', 'Đối chiếu Q với ảnh tham chiếu K'],
-          ['/seal-library', BookOpen, 'Thêm mẫu con dấu', 'Xây dựng thư viện tham chiếu'],
+          ['/compare/document-stamp', ScanLine, 'So khớp con dấu', 'Tải văn bản và chọn ảnh dấu đối chiếu'],
+          [
+            '/seal-library/add',
+            BookOpen,
+            'Thêm con dấu tổ chức',
+            'Chọn tổ chức và tải ảnh trong một màn hình',
+          ],
         ].map(([path, Icon, title, sub]) => {
           const I = Icon as typeof FileText;
           return (

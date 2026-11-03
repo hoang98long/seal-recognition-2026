@@ -18,10 +18,49 @@ from app.db.models import (
 )
 from app.db.repositories import audit, page_query, public, record
 from app.db.session import get_db
-from app.schemas.common import DesignIn, DeviceIn, ImpressionIn, OrganizationIn
+from app.schemas.common import DesignIn, DeviceIn, ImpressionIn, OrganizationIn, ReferenceIntakeIn
 from app.services.storage_service import authorized_asset
 
 router = APIRouter(tags=["Thư viện"])
+
+
+@router.post("/reference-intake", status_code=201)
+def reference_intake(body: ReferenceIntakeIn, user: User = Depends(editor), db: Session = Depends(get_db)):
+    """Save organization, design and reference in one transaction."""
+    asset = authorized_asset(db, body.image_asset_id, user)
+    if asset.kind != "processed_stamp" or not asset.source_metadata.get("roi_confirmed"):
+        raise AppError(422, "reference_roi", "Hãy xác nhận và lưu vùng con dấu trước.")
+    if body.organization_id:
+        organization = record(db, Organization, body.organization_id)
+        if organization.status != "active":
+            raise AppError(422, "organization_inactive", "Hãy chọn tổ chức đang hoạt động.")
+    else:
+        organization = Organization(name=body.organization_name, created_by=user.id)
+        db.add(organization)
+        db.flush()
+        audit(db, user, "create", "organizations", organization.id)
+    if body.seal_design_id:
+        design = record(db, SealDesign, body.seal_design_id)
+        if design.organization_id != organization.id or design.status != "active":
+            raise AppError(422, "design_organization", "Mẫu dấu không thuộc tổ chức đang chọn.")
+    else:
+        design = SealDesign(organization_id=organization.id, name=body.name, seal_type=body.seal_type)
+        db.add(design)
+        db.flush()
+        audit(db, user, "create", "seal-designs", design.id)
+    values = ImpressionIn(
+        seal_design_id=design.id,
+        image_asset_id=asset.id,
+        capture_method="uploaded",
+        note=body.note,
+    ).model_dump()
+    validate_references(db, SealImpression, values, user)
+    impression = SealImpression(**values, created_by=user.id)
+    db.add(impression)
+    db.flush()
+    audit(db, user, "create", "seal-impressions", impression.id)
+    db.commit()
+    return {**public(impression), "design_name": design.name, "organization_name": organization.name}
 
 
 def validate_references(db, model, values, user):
@@ -128,7 +167,11 @@ def register_crud(path, model, schema, search_fields):
             and user.role != "admin"
         ):
             raise AppError(403, "private_impression", "Ảnh dấu này là dữ liệu riêng.")
-        return public(item)
+        result = public(item)
+        if model == SealImpression:
+            result["design_name"] = db.get(SealDesign, item.seal_design_id).name
+            result["organization_name"] = db.get(Organization, item.organization_id).name
+        return result
 
     def patch(ident: uuid.UUID, body, user: User = Depends(editor), db: Session = Depends(get_db)):
         item = record(db, model, ident)

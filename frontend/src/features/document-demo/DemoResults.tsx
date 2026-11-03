@@ -16,7 +16,7 @@ export function DemoResults({
 }) {
   const data = result.structured_result;
   return (
-    <section className="demo-results" aria-label="Kết quả demo">
+    <section className="demo-results" aria-label="Kết quả so khớp">
       <div className="demo-result-heading">
         <div>
           <p className="eyebrow">KẾT QUẢ ĐƯỢC LƯU TRONG LỊCH SỬ</p>

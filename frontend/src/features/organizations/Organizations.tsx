@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { Building2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post } from '../../lib/api';
@@ -35,10 +36,15 @@ export function Organizations() {
         description="Quản lý đơn vị sở hữu mẫu thiết kế và thông tin nguồn tham chiếu."
       >
         {editable && (
-          <Button onClick={() => setEditing(null)}>
-            <Plus size={17} />
-            Thêm tổ chức
-          </Button>
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/seal-library/add">Thêm con dấu tổ chức</Link>
+            </Button>
+            <Button onClick={() => setEditing(null)}>
+              <Plus size={17} />
+              Thêm tổ chức
+            </Button>
+          </>
         )}
       </PageHeader>
       <div className="toolbar">
@@ -102,6 +108,9 @@ export function Organizations() {
                     <td>
                       {editable && (
                         <div className="row-actions">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/seal-library/add?organization=${o.id}`}>Thêm con dấu</Link>
+                          </Button>
                           <Button
                             size="icon"
                             variant="ghost"

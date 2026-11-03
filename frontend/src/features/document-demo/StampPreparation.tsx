@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, LoaderCircle, RotateCcw, Save, WandSparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,13 +32,13 @@ export function StampPreparation({
   const [parameters, setParameters] = useState<Parameters>(
     initial?.run.parameters || { ...defaultParameters },
   );
-  const [confirmed, setConfirmed] = useState(!!initial);
   const [allowFull, setAllowFull] = useState(!!initial?.asset.source_metadata.whole_source_confirmed);
   const [saved, setSaved] = useState<PreparedStamp | null>(initial);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState('');
   const [previewBusy, setPreviewBusy] = useState(false);
   const [error, setError] = useState('');
+  const suggestedPages = useRef(new Set(initial ? [initial.run.source_page] : []));
   const source = useQuery({
     queryKey: ['page-size', asset.id, page],
     queryFn: () =>
@@ -53,6 +53,11 @@ export function StampPreparation({
     roi.y === 0 &&
     roi.width === source.data.width &&
     roi.height === source.data.height;
+  useEffect(() => {
+    if (!source.data || suggestedPages.current.has(page)) return;
+    suggestedPages.current.add(page);
+    if (source.data.roi) setRoi(source.data.roi);
+  }, [source.data, page]);
   const validRoi =
     !!roi &&
     !!source.data &&
@@ -70,7 +75,6 @@ export function StampPreparation({
   }
   function changeRoi(next: ROI | null) {
     setRoi(next);
-    setConfirmed(false);
     setAllowFull(false);
     invalidate();
   }
@@ -82,7 +86,7 @@ export function StampPreparation({
     setPage(next);
     setRoi(null);
     setParameters({ ...defaultParameters });
-    setConfirmed(false);
+    suggestedPages.current.delete(next);
     setAllowFull(false);
     invalidate();
   }
@@ -123,7 +127,7 @@ export function StampPreparation({
   }, [asset.id, page, roi, parameters, validRoi]);
 
   async function save() {
-    if (!validRoi || !confirmed || saving) return;
+    if (!validRoi || (wholePage && !allowFull) || saving) return;
     setSaving(true);
     onBusyChange(true);
     setError('');
@@ -133,7 +137,7 @@ export function StampPreparation({
         page,
         roi,
         parameters,
-        roi_confirmed: confirmed,
+        roi_confirmed: true,
         allow_full_page: allowFull,
       });
       setSaved(result);
@@ -186,16 +190,18 @@ export function StampPreparation({
       </div>
       <div className="demo-prep-source">
         <strong title={asset.original_filename}>{asset.original_filename}</strong>
-        <label>
-          Trang / khung ảnh {role}
-          <select value={page} disabled={saving} onChange={(e) => choosePage(Number(e.target.value))}>
-            {Array.from({ length: asset.page_count }, (_, i) => (
-              <option key={i} value={i + 1}>
-                Trang {i + 1} / {asset.page_count}
-              </option>
-            ))}
-          </select>
-        </label>
+        {asset.page_count > 1 && (
+          <label>
+            Trang / khung ảnh {role}
+            <select value={page} disabled={saving} onChange={(e) => choosePage(Number(e.target.value))}>
+              {Array.from({ length: asset.page_count }, (_, i) => (
+                <option key={i} value={i + 1}>
+                  Trang {i + 1} / {asset.page_count}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {source.isPending ? (
         <Loading />
@@ -246,48 +252,34 @@ export function StampPreparation({
               </Button>
             </div>
             <p className="muted small">
-              Kéo hình chữ nhật và chỉnh các góc. Tọa độ theo ảnh gốc; chỉ vùng đã xác nhận được gửi.
+              {roi
+                ? 'Kiểm tra vùng dấu đã gợi ý; kéo khung hoặc các góc để chỉnh lại.'
+                : 'Chưa tìm thấy vùng dấu. Kéo một khung bao quanh con dấu trên ảnh.'}
             </p>
-            {roi && (
-              <div className="roi-fields">
-                {(['x', 'y', 'width', 'height'] as const).map((key, i) => (
-                  <label key={key}>
-                    {['X', 'Y', 'Rộng', 'Cao'][i]} {role}
-                    <input
-                      type="number"
-                      min={i < 2 ? 0 : 2}
-                      value={roi[key]}
-                      disabled={saving}
-                      onChange={(e) => changeRoi({ ...roi, [key]: Number(e.target.value) })}
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-            <label>
-              Cấu hình xử lý {role}
-              <select
-                disabled={saving}
-                value="custom"
-                onChange={(e) => changeParameters(preprocessingPreset(e.target.value))}
-              >
-                <option value="custom" disabled>
-                  Thông số hiện tại
-                </option>
-                <option value="original">Giữ nguyên màu mực</option>
-                <option value="red">Tách mực đỏ</option>
-                <option value="bw">Đen trắng</option>
-                <option value="gentle">Làm rõ nhẹ</option>
-              </select>
-            </label>
-            <div className="demo-adjustments">
-              {numberControl('rotation', `Góc xoay ${role}`, -180, 180)}
-              {numberControl('brightness', `Độ sáng ${role}`, -100, 100)}
-              {numberControl('contrast', `Tương phản ${role}`, 0.1, 3, 0.05)}
-              {numberControl('gamma', `Gamma ${role}`, 0.1, 3, 0.05)}
-            </div>
             <details className="demo-extra">
-              <summary>Điều chỉnh thêm</summary>
+              <summary>Chỉnh tọa độ và chất lượng ảnh</summary>
+              {roi && (
+                <div className="roi-fields">
+                  {(['x', 'y', 'width', 'height'] as const).map((key, i) => (
+                    <label key={key}>
+                      {['X', 'Y', 'Rộng', 'Cao'][i]} {role}
+                      <input
+                        type="number"
+                        min={i < 2 ? 0 : 2}
+                        value={roi[key]}
+                        disabled={saving}
+                        onChange={(e) => changeRoi({ ...roi, [key]: Number(e.target.value) })}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="demo-adjustments">
+                {numberControl('rotation', `Góc xoay ${role}`, -180, 180)}
+                {numberControl('brightness', `Độ sáng ${role}`, -100, 100)}
+                {numberControl('contrast', `Tương phản ${role}`, 0.1, 3, 0.05)}
+                {numberControl('gamma', `Gamma ${role}`, 0.1, 3, 0.05)}
+              </div>
               <div className="demo-adjustments">
                 {numberControl('saturation', `Bão hòa ${role}`, 0, 3, 0.05)}
                 {numberControl('sharpen', `Làm nét ${role}`, 0, 3, 0.1)}
@@ -297,6 +289,22 @@ export function StampPreparation({
                 Giữ màu mực khi có thể. Làm nét và phân ngưỡng có thể thay đổi hoặc làm mất chi tiết.
               </p>
             </details>
+            <label>
+              Xử lý ảnh {role}
+              <select
+                disabled={saving}
+                value="custom"
+                onChange={(e) => changeParameters(preprocessingPreset(e.target.value))}
+              >
+                <option value="custom" disabled>
+                  Giữ thông số hiện tại
+                </option>
+                <option value="original">Giữ nguyên màu mực</option>
+                <option value="red">Tách mực đỏ</option>
+                <option value="bw">Đen trắng</option>
+                <option value="gentle">Làm rõ nhẹ</option>
+              </select>
+            </label>
             {!validRoi && <p className="demo-hint">Chọn một vùng con dấu hợp lệ trước khi lưu ảnh {role}.</p>}
             {wholePage && (
               <div className="notice">
@@ -315,26 +323,18 @@ export function StampPreparation({
                 </label>
               </div>
             )}
-            <label className="check">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                disabled={!validRoi || saving}
-                onChange={(e) => {
-                  setConfirmed(e.target.checked);
-                  if (!e.target.checked) invalidate();
-                }}
-              />
-              Tôi xác nhận vùng con dấu {role} đã chọn
-            </label>
             {error && <ErrorBox error={new Error(error)} />}
             <Button
               className="w-full"
-              disabled={!validRoi || !confirmed || (wholePage && !allowFull) || saving || !!saved}
+              disabled={!validRoi || (wholePage && !allowFull) || saving || !!saved}
               onClick={() => void save()}
             >
               {saving ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
-              {saved ? `Ảnh ${role} đã sẵn sàng` : `Lưu ảnh ${role} để so khớp`}
+              {saving
+                ? 'Đang lưu vùng dấu…'
+                : saved
+                  ? `Ảnh ${role} đã sẵn sàng`
+                  : `Xác nhận vùng dấu ${role}`}
             </Button>
           </div>
           <div className="demo-crop-preview">

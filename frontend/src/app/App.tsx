@@ -13,6 +13,9 @@ const Organizations = lazy(() =>
   import('../features/organizations/Organizations').then((m) => ({ default: m.Organizations })),
 );
 const Library = lazy(() => import('../features/seal-library/Library').then((m) => ({ default: m.Library })));
+const AddReference = lazy(() =>
+  import('../features/seal-library/AddReference').then((m) => ({ default: m.AddReference })),
+);
 const Compare = lazy(() => import('../features/comparisons/Compare').then((m) => ({ default: m.Compare })));
 const DocumentDemo = lazy(() =>
   import('../features/document-demo/DocumentDemo').then((m) => ({ default: m.DocumentDemo })),
@@ -38,9 +41,11 @@ export function App() {
         <Route path="/preprocessing/:runId" element={<Editor />} />
         <Route path="/organizations" element={<Organizations />} />
         <Route path="/seal-library" element={<Library />} />
+        <Route path="/seal-library/add" element={<AddReference />} />
         <Route path="/compare/new" element={<Compare />} />
-        <Route path="/demo" element={<Navigate to="/demo/document-stamp" replace />} />
-        <Route path="/demo/document-stamp" element={<DocumentDemo />} />
+        <Route path="/demo" element={<Navigate to="/compare/document-stamp" replace />} />
+        <Route path="/demo/document-stamp" element={<Navigate to="/compare/document-stamp" replace />} />
+        <Route path="/compare/document-stamp" element={<DocumentDemo />} />
         <Route path="/compare/:sessionId/results" element={<Results />} />
         <Route path="/history" element={<History />} />
         <Route path="/reports" element={<Reports />} />

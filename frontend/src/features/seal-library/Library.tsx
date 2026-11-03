@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { BookOpen, Grid2X2, List, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post, previewUrl } from '../../lib/api';
@@ -21,10 +21,11 @@ import { useAuth } from '../auth/Auth';
 
 type Tab = 'seal-impressions' | 'seal-designs' | 'seal-devices';
 export function Library() {
+  const [search] = useSearchParams();
   const [tab, setTab] = useState<Tab>('seal-impressions');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  const [org, setOrg] = useState('');
+  const [org, setOrg] = useState(search.get('organization') || '');
   const [grid, setGrid] = useState(true);
   const [editing, setEditing] = useState<Entity | null | undefined>();
   const [deleting, setDeleting] = useState<Entity | null>(null);
@@ -113,7 +114,7 @@ export function Library() {
       <PageHeader
         eyebrow="KHO THAM CHIẾU"
         title="Thư viện mẫu con dấu"
-        description="Tách biệt mẫu thiết kế, dụng cụ vật lý và từng ảnh dấu đóng. Không suy luận cùng nguồn vật lý."
+        description="Lưu và tra cứu dấu mẫu theo tổ chức. Thêm ảnh mới trong một màn hình, dùng lại khi so khớp văn bản."
       >
         {editable && (
           <>
@@ -126,10 +127,19 @@ export function Library() {
             >
               Tải nhiều ảnh mẫu
             </Button>
-            <Button onClick={() => setEditing(null)}>
-              <Plus size={17} />
-              Thêm {label}
-            </Button>
+            {tab === 'seal-impressions' ? (
+              <Button asChild>
+                <Link to={`/seal-library/add${org ? `?organization=${org}` : ''}`}>
+                  <Plus size={17} />
+                  Thêm con dấu tổ chức
+                </Link>
+              </Button>
+            ) : (
+              <Button onClick={() => setEditing(null)}>
+                <Plus size={17} />
+                Thêm {label}
+              </Button>
+            )}
           </>
         )}
       </PageHeader>
@@ -211,11 +221,13 @@ export function Library() {
       ) : !query.data.items.length ? (
         <Empty
           title={`Chưa có ${label}`}
-          description="Tạo tổ chức, thêm mẫu thiết kế, sau đó tải ảnh đóng mẫu hoặc chọn ảnh đã xử lý."
+          description="Chọn tổ chức và tải ảnh dấu. Bạn có thể tạo tổ chức mới ngay trong lúc thêm dấu."
         >
-          <Button variant="outline" asChild>
-            <Link to="/preprocessing">Mở xưởng xử lý ảnh</Link>
-          </Button>
+          {editable && (
+            <Button variant="outline" asChild>
+              <Link to="/seal-library/add">Thêm con dấu đầu tiên</Link>
+            </Button>
+          )}
         </Empty>
       ) : tab === 'seal-impressions' && grid ? (
         <div className="library-grid">
@@ -239,6 +251,9 @@ export function Library() {
                 <span className="eyebrow">{i.organization_name}</span>
                 <h3>{i.design_name}</h3>
                 <p>{i.note || 'Ảnh tham chiếu chưa bổ sung ghi chú.'}</p>
+                <Button className="w-full" variant="outline" size="sm" asChild>
+                  <Link to={`/compare/document-stamp?reference=${i.id}`}>So khớp với văn bản</Link>
+                </Button>
                 <div className="stamp-actions">
                   <button
                     className="text-link"

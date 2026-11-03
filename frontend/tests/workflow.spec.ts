@@ -105,19 +105,22 @@ test('DEMO: đăng nhập, CRUD, cắt ảnh, so sánh, chú thích và báo cá
   const report = await page.request.get(reportHref!);
   expect(report.ok()).toBeTruthy();
   expect(await report.text()).toContain('DEMO — không phải AI thật');
-  const normalized = await page.evaluate(() => localStorage.getItem('seal-Q'));
   await page.goto('/seal-library');
-  await page.getByRole('button', { name: 'Thêm ảnh dấu tham chiếu', exact: true }).click();
+  await page.getByRole('link', { name: 'Thêm con dấu tổ chức', exact: true }).click();
   await page
-    .getByRole('combobox', { name: 'Mẫu thiết kế *', exact: true })
+    .getByRole('combobox', { name: 'Tổ chức', exact: true })
+    .selectOption({ label: 'Đơn vị E2E DEMO' });
+  await page
+    .getByRole('combobox', { name: 'Mẫu con dấu', exact: true })
     .selectOption({ label: 'Dấu thử nghiệm DEMO' });
-  await page.getByRole('combobox', { name: 'Ảnh đã xử lý *', exact: true }).selectOption(normalized!);
   await page
-    .getByRole('combobox', { name: 'Trạng thái tham chiếu *', exact: true })
-    .selectOption('reference_only');
-  await page.getByRole('combobox', { name: 'Trạng thái *', exact: true }).selectOption('active');
-  await page.getByRole('button', { name: 'Lưu thông tin', exact: true }).click();
-  await expect(page.locator('.stamp-card')).toHaveCount(1);
+    .getByLabel('Tải ảnh con dấu tổ chức')
+    .setInputFiles({ name: 'DEMO.png', mimeType: 'image/png', buffer: Buffer.from(demo, 'base64') });
+  const reference = page.getByRole('region', { name: 'Chuẩn bị ảnh K', exact: true });
+  await reference.getByRole('button', { name: 'Xác nhận vùng dấu K', exact: true }).click();
+  await expect(reference.getByRole('button', { name: 'Ảnh K đã sẵn sàng', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Lưu vào thư viện', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Đã lưu con dấu', exact: true })).toBeVisible();
   for (const [route, title] of [
     ['/dashboard', 'Tổng quan hệ thống'],
     ['/history', 'Lịch sử phân tích'],

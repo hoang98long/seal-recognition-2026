@@ -77,14 +77,16 @@ Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và co
 
 ## Quy trình sử dụng
 
-**Demo nhanh một văn bản với một ảnh dấu:** vào mục **Demo văn bản & ảnh dấu** tại `/demo/document-stamp`. Trang riêng cho phép tải hai tệp, chọn trang/ROI, lưu Q/K, xác nhận gửi OpenAI và xem kết quả/báo cáo ngay trong cùng một luồng. Không cần chuẩn bị thư viện. Xem [hướng dẫn demo](docs/demo_document_stamp.md).
+**So khớp văn bản & ảnh dấu:** vào mục **Văn bản & ảnh dấu** tại `/compare/document-stamp`. Tải văn bản, tải ảnh dấu hoặc chọn dấu đã lưu theo tổ chức, kiểm tra vùng dấu được gợi ý rồi xác nhận gửi OpenAI. Kết quả và báo cáo hiện ngay trong cùng luồng. Đường dẫn `/demo/document-stamp` cũ tự chuyển sang trang mới. Xem [hướng dẫn so khớp](docs/demo_document_stamp.md).
+
+**Nhập con dấu tổ chức:** chọn **Thêm con dấu tổ chức** tại Tổng quan, Thư viện hoặc ngay trên dòng tổ chức. Trang `/seal-library/add` cho phép chọn/tạo tổ chức, tải ảnh/PDF, xác nhận vùng dấu và lưu mẫu cùng ảnh trong một lần. Sau khi lưu, có thể so khớp ngay hoặc thêm ảnh khác cho cùng mẫu. Không cần tạo dụng cụ đóng dấu.
 
 1. Đăng nhập và đổi mật khẩu bắt buộc. Dashboard hiển thị số liệu DB thật, không seed phiên phân tích giả.
 2. Tài liệu nguồn → tải PDF/PNG/JPG/TIFF/WEBP. Chọn từng trang/khung, giới hạn mặc định 25 MB, 100 trang, 40 triệu pixel/trang.
 3. Xưởng xử lý → chọn nguồn/trang. Kéo ROI, kéo góc resize hoặc nhập X/Y/Rộng/Cao theo **pixel nguồn trước khi xoay**. Kiểm tra gợi ý vùng mực đỏ bằng mắt.
 4. Điều chỉnh góc xoay, sáng/tương phản/gamma, bão hòa, khử nhiễu, nét, HSV, ngưỡng, hình thái, đảo màu, nền. Preview tính bằng backend. Lưu/copy hồ sơ thông số cho Q/K; ROI chọn riêng từng ảnh.
 5. Xác nhận ROI → Áp dụng và lưu. Tải PNG hoặc chọn làm Q/K. Chỉnh tiếp cần lưu phiên bản mới trước khi chọn.
-6. Thư viện → thêm tổ chức, mẫu thiết kế, dụng cụ khi có bằng chứng nguồn gốc, ảnh đã xử lý. Tải nhiều ảnh tạo nhiều lần đóng; ảnh nguyên trang cần xử lý và cập nhật trước khi so sánh. Dụng cụ có thể để trống.
+6. Thư viện → **Thêm con dấu tổ chức**. Chọn tổ chức có sẵn hoặc nhập tên mới, tải ảnh và xác nhận vùng dấu. Mẫu mới được lưu cùng ảnh; cũng có thể thêm ảnh vào mẫu có sẵn. Các tab mẫu thiết kế/dụng cụ dành cho quản lý chi tiết khi cần.
 7. So khớp → chọn Q/K tải lên hoặc tối đa 5 K thư viện. Kiểm tra ảnh, số calls và xác nhận được phép gửi OpenAI. Chỉ ROI đã lưu được gửi, không gửi PDF trực tiếp.
 8. Xem dấu hiệu giống/khác/chưa rõ, hạn chế, model/usage. Zoom, hoán đổi hiển thị, chồng ảnh cùng kích thước (chưa căn chỉnh hình học). Khoanh vùng người dùng được lưu riêng với nguồn user.
 9. So sánh lại tạo kết quả mới cùng phiên; giữ nguyên ID ảnh, SHA256 và thông số của kết quả cũ. Xuất HTML tự chứa ảnh; **Ctrl+P → Lưu dưới dạng PDF** trong trình duyệt.
