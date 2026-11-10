@@ -1,5 +1,18 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { Asset } from '../types';
+export const assetLabel = (asset: Asset) =>
+  asset.display_name || `${asset.original_filename} · ${asset.id.slice(0, 8)}`;
+export const scoreBand = (score: number | null | undefined) =>
+  score == null ? 'gray' : score > 90 ? 'green' : score >= 70 ? 'yellow' : 'red';
+export const scoreLabel = (score: number | null | undefined) =>
+  score == null
+    ? 'Chưa đủ dữ liệu'
+    : score > 90
+      ? 'Tương đồng cao'
+      : score >= 70
+        ? 'Cần xem xét'
+        : 'Ít tương đồng';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -8,6 +21,9 @@ export const dateTime = (date: string) =>
 export const statusLabel: Record<string, string> = {
   draft: 'Bản nháp',
   running: 'Đang phân tích',
+  queued: 'Đang chờ xử lý',
+  interrupted: 'Bị gián đoạn',
+  organization_search: 'Tra cứu tổ chức',
   completed: 'Hoàn tất',
   failed: 'Có lỗi',
   active: 'Đang sử dụng',

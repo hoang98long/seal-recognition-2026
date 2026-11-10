@@ -57,3 +57,18 @@ Tác vụ thủ công tiếp theo: mở hai terminal, kích hoạt .venv rồi c
 - Đã xem ảnh giao diện thêm dấu ở desktop 1366px và kết quả trên điện thoại 390px; kiểm tra tablet 820px và điện thoại không tràn ngang.
 - E2E dùng schema riêng và SDK OpenAI mock, không dùng key thật hoặc API trả phí. Sau khi hoàn tất còn **0 schema E2E**. Các server kiểm thử đã dừng; không thay đổi dữ liệu/key của ứng dụng thường.
 - Hướng dẫn hiện tại: [So khớp văn bản và nhập con dấu tổ chức](demo_document_stamp.md).
+
+## Rà soát PDF, hồ sơ tổ chức và Top 3 qua API — 10/11/2026
+
+- Migration `20261110_org_flow` đã chạy trên CSDL local; `alembic current` ở head, `alembic check` không có drift. Sao lưu trước migration: `data/backups/seal-before-org-workflow-20261110-082837.dump` (60.592 byte).
+- Đã thêm bốn danh mục VPCP, TTCP, BCA, BQP và tên hiển thị cho bốn ảnh xử lý cũ. Số bản ghi nghiệp vụ trước/sau giữ nguyên: 1 user, 7 tệp/ảnh, 2 tài liệu, 0 ảnh thư viện tham chiếu, 3 kết quả. Không tự gán đơn vị cho ảnh cũ khi chưa có xác nhận; giao diện cho dùng lại ảnh đã xử lý để lưu vào đơn vị.
+- PDFium khởi tạo form trước khi mở page, render cả annotations và AcroForm appearances. Kiểm tra trực tiếp hai PDF trong kho local: nguồn `e2cfe17b`, trang 1 đỏ 0 → 2.732 pixel và trang 4 đỏ 0 → 5.583; nguồn `67caeef1`, trang 1 đỏ 0 → 4.102; trang 10 vốn đúng giữ 15.693 → 15.693. Không sửa byte PDF gốc.
+- Vùng SVG có nền bắt chuột, công cụ vẽ lại và xử lý khung ban đầu phủ toàn ảnh; dùng ref để giữ ROI cuối khi pointer-up, không commit khi pointer-cancel. E2E khoanh dấu đen không dùng nút gợi ý, kiểm tra ROI rộng ~240px trên ảnh 300px và preview/saved output.
+- Hồ sơ tổ chức có thư viện dấu, nhiều tài liệu, cấu hình xử lý dùng chung; gắn được cấu hình cá nhân cũ vào tổ chức. E2E kiểm tra cấu hình đã gắn và áp dụng độ sáng 7 trong xưởng. Upload nhiều tệp giữ hàng đợi, hỗ trợ tách nhiều dấu cùng tài liệu và chọn lại ảnh đã xử lý.
+- Preview K xuất hiện ngay bước chọn; đổi tên ảnh không đổi SHA256/byte ảnh, tên tự nhập được giữ khi thêm vào thư viện. Tên tự sinh có nguồn/trang/tổ chức/mã ngắn; ảnh cũ cũng được backfill tên hiển thị.
+- Tra cứu dùng OpenAI từng cặp với toàn bộ corpus hợp lệ, không cắt ở giới hạn 5 của luồng thủ công. Xếp tối đa ba tổ chức khác nhau theo điểm cao nhất trong các mẫu đã so. Kiểm tra số cặp trước consent, tiến độ, lỗi/ranking tạm thời, retry chỉ phần lỗi/chưa chạy, quyền người dùng và trường hợp điểm null không được tự gán số.
+- Prompt `seal-only-vi-v2` loại chữ ký/chức danh ngoài dấu khỏi tiêu chí khác biệt; yêu cầu đọc đủ các cung chữ và không điền chữ bị che. Hai ảnh Vision có `detail: high`, phóng nhỏ có giới hạn để đọc chữ; snapshot giữ chính sách encode ảnh. Không cam kết đọc được nét mất/che khuất, chưa chạy kiểm chứng trả phí bằng key thật.
+- Màu nhất quán trong kết quả cặp, Top 3 và báo cáo: >90 xanh, 70–90 vàng, <70 đỏ, null xám. Báo cáo Top 3 ghi rõ phạm vi hoàn tất/tạm thời và cách gom điểm.
+- **59 pytest đạt (20.54s)**; **6 Playwright đạt (54.5s)**; TypeScript/Vite build đạt, các chunk <500 kB; Ruff và `git diff --check` đạt. Đã xem ảnh Top 3 desktop 1366px và điện thoại 390px, kiểm tra không tràn ngang. Các cảnh báo dependency đã ghi ở phần trước vẫn không làm hỏng kiểm tra.
+- Test dùng schema và bộ ảnh riêng, SDK OpenAI HTTP mock; không dùng key thật và không gọi API trả phí. Sau hoàn tất còn 0 schema E2E; server kiểm thử đã được dừng. Model/key trong `.env` local được giữ nguyên; test tự pin model để không phụ thuộc cấu hình cá nhân.
+- Hướng dẫn và đề xuất tiếp theo: [Luồng tổ chức và Top 3](organization_workflow.md).

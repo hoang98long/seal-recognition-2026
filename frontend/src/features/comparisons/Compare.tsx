@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ExternalLink, LoaderCircle, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post, previewUrl } from '../../lib/api';
-import { dateTime } from '../../lib/utils';
+import { assetLabel, dateTime } from '../../lib/utils';
 import type { Analysis, Asset, Candidate, Impression, OpenAIStatus, Page } from '../../types';
 import { Disclaimer, Empty, ErrorBox, Loading, PageHeader, UploadBox } from '../../components/shared';
 import { Button } from '../../components/ui/button';
@@ -54,6 +54,12 @@ export function Compare() {
     queryKey: ['asset', q],
     queryFn: () => api<Asset>(`/assets/${q}`),
     enabled: !!q,
+  });
+  const k = candidates[0]?.reference_asset_id || '';
+  const kAsset = useQuery({
+    queryKey: ['asset', k],
+    queryFn: () => api<Asset>(`/assets/${k}`),
+    enabled: !!k,
   });
   const max = status.data?.max_candidates || 5;
   const steps = [
@@ -180,6 +186,13 @@ export function Compare() {
                   />
                   <UploadBox kind="original_stamp" onUploaded={(a) => nav(`/preprocessing?asset=${a.id}`)} />
                   <p className="muted">Sau khi xử lý ảnh K, chọn “Chọn làm K” rồi quay lại màn hình này.</p>
+                  {kAsset.data && (
+                    <figure className="selected-asset-preview">
+                      <img className="selected-preview" src={previewUrl(k)} alt="Dấu đối chiếu K đã chọn" />
+                      <figcaption>{assetLabel(kAsset.data)}</figcaption>
+                    </figure>
+                  )}
+                  {kAsset.error && <ErrorBox error={kAsset.error} />}
                 </>
               ) : (
                 <>
@@ -381,7 +394,7 @@ function AssetPicker({
         )}
         {assets.map((a) => (
           <option key={a.id} value={a.id}>
-            {a.original_filename} · {a.id.slice(0, 8)} · {dateTime(a.created_at)}
+            {assetLabel(a)} · {dateTime(a.created_at)}
           </option>
         ))}
       </select>

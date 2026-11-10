@@ -42,9 +42,9 @@ export function Dashboard() {
           </Link>
         </Button>
         <Button asChild>
-          <Link to="/compare/document-stamp">
+          <Link to="/compare/library">
             <ScanLine size={17} />
-            So khớp mới
+            Tra cứu Top 3 tổ chức
           </Link>
         </Button>
       </PageHeader>
@@ -64,8 +64,8 @@ export function Dashboard() {
             Mọi phiên xử lý đều lưu lại nguồn ảnh và thông số đã dùng.
           </p>
           <Button asChild>
-            <Link to="/compare/document-stamp">
-              So khớp văn bản
+            <Link to="/compare/library">
+              Tra cứu con dấu trong thư viện
               <ArrowRight size={16} />
             </Link>
           </Button>
@@ -99,8 +99,13 @@ export function Dashboard() {
       </div>
       <div className="quick-grid">
         {[
-          ['/documents', FolderUp, 'Tải tài liệu', 'PDF, ảnh quét hoặc ảnh chụp'],
-          ['/compare/document-stamp', ScanLine, 'So khớp con dấu', 'Tải văn bản và chọn ảnh dấu đối chiếu'],
+          ['/organizations', FolderUp, 'Tổ chức & thư viện dấu', 'Chọn đơn vị, tải tài liệu và tách dấu'],
+          [
+            '/compare/library',
+            ScanLine,
+            'Tra cứu Top 3 tổ chức',
+            'So khớp qua OpenAI với thư viện trong CSDL',
+          ],
           [
             '/seal-library/add',
             BookOpen,

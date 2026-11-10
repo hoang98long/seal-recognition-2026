@@ -33,7 +33,7 @@ export function Organizations() {
       <PageHeader
         eyebrow="THƯ VIỆN THAM CHIẾU"
         title="Cơ quan / tổ chức"
-        description="Quản lý đơn vị sở hữu mẫu thiết kế và thông tin nguồn tham chiếu."
+        description="Chọn một đơn vị để xem con dấu, tài liệu nguồn và cấu hình xử lý. Bắt đầu bằng tạo tổ chức, tải tài liệu rồi lưu dấu mẫu."
       >
         {editable && (
           <>
@@ -91,7 +91,9 @@ export function Organizations() {
                           <Building2 size={19} />
                         </span>
                         <div>
-                          <strong>{o.name}</strong>
+                          <Link className="text-link" to={`/organizations/${o.id}`}>
+                            <strong>{o.name}</strong>
+                          </Link>
                           <small>{o.short_name || o.description}</small>
                         </div>
                       </div>
@@ -106,6 +108,9 @@ export function Organizations() {
                       </span>
                     </td>
                     <td>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/organizations/${o.id}`}>Xem con dấu</Link>
+                      </Button>
                       {editable && (
                         <div className="row-actions">
                           <Button variant="outline" size="sm" asChild>

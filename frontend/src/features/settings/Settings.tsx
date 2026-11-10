@@ -170,7 +170,7 @@ export function Settings() {
             <>
               <h2>Cấu hình xử lý ảnh</h2>
               <p>
-                Thông số xử lý từng ảnh và hồ sơ cá nhân được chỉnh trong Xưởng xử lý ảnh. Các giới hạn hệ
+                Cấu hình xử lý ảnh theo tổ chức được chỉnh trong Xưởng xử lý ảnh. Các giới hạn hệ
                 thống được đọc từ backend/.env.
               </p>
               <dl className="metadata-list">

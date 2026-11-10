@@ -18,12 +18,21 @@ def load_page(asset, page=1):
         raise AppError(422, "invalid_page", "Số trang/khung ảnh không hợp lệ.")
     path = asset_path(asset)
     if asset.media_type == "application/pdf":
-        with PDF_LOCK, pdfium.PdfDocument(path) as doc, closing(doc[page - 1]) as pdf_page:
-            bitmap = pdf_page.render(scale=get_settings().pdf_render_scale)
-            try:
-                return bitmap.to_pil().convert("RGB").copy()
-            finally:
-                bitmap.close()
+        with PDF_LOCK, pdfium.PdfDocument(path) as doc:
+            # Signature/stamp appearances may be annotations or AcroForm widgets,
+            # rather than page content. Initialize before creating page handles.
+            doc.init_forms()
+            with closing(doc[page - 1]) as pdf_page:
+                bitmap = pdf_page.render(
+                    scale=get_settings().pdf_render_scale,
+                    draw_annots=True,
+                    may_draw_forms=True,
+                    fill_color=(255, 255, 255, 255),
+                )
+                try:
+                    return bitmap.to_pil().convert("RGB").copy()
+                finally:
+                    bitmap.close()
     with Image.open(path) as image:
         image.seek(page - 1)
         image = ImageOps.exif_transpose(image)

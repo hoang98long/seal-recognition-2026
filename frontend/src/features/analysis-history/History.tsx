@@ -151,7 +151,13 @@ export function History() {
                       <strong>{s.title}</strong>
                       <small>{s.id.slice(0, 8)}</small>
                     </td>
-                    <td>{s.mode === 'library' ? 'Thư viện' : 'Hai ảnh'}</td>
+                    <td>
+                      {s.mode === 'organization_search'
+                        ? 'Top 3 tổ chức'
+                        : s.mode === 'library'
+                          ? 'Thư viện'
+                          : 'Hai ảnh'}
+                    </td>
                     <td>{dateTime(s.created_at)}</td>
                     <td>
                       <span className={`badge ${s.status}`}>{statusLabel[s.status]}</span>

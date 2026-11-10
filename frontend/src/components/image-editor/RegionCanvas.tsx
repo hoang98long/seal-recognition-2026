@@ -25,7 +25,9 @@ export function RegionCanvas({
   const [boxSize, setBoxSize] = useState({ w: 600, h: 500 });
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState(false);
+  const [drawing, setDrawing] = useState(true);
   const [draft, setDraft] = useState<ROI | null>(null);
+  const draftRef = useRef<ROI | null>(null);
   const drag = useRef<{
     x: number;
     y: number;
@@ -46,6 +48,10 @@ export function RegionCanvas({
   useEffect(() => {
     setZoom(1);
     setDraft(null);
+    draftRef.current = null;
+    drag.current = null;
+    setPan(false);
+    setDrawing(true);
   }, [src]);
   const scale = Math.min(boxSize.w / width, boxSize.h / height, 1) * zoom;
   const displayed = draft || roi;
@@ -57,6 +63,7 @@ export function RegionCanvas({
     };
   };
   function start(e: React.PointerEvent, handle = 'new') {
+    if (e.button !== 0) return;
     if (readOnly && !pan) return;
     e.preventDefault();
     e.stopPropagation();
@@ -71,7 +78,11 @@ export function RegionCanvas({
       clientY: e.clientY,
     };
     svg.current!.setPointerCapture(e.pointerId);
-    if (!pan && handle === 'new') setDraft({ x: p.x, y: p.y, width: 2, height: 2 });
+    draftRef.current = null;
+    if (!pan && handle === 'new') {
+      draftRef.current = { x: p.x, y: p.y, width: 2, height: 2 };
+      setDraft(draftRef.current);
+    }
   }
   function move(e: React.PointerEvent) {
     const d = drag.current;
@@ -107,12 +118,27 @@ export function RegionCanvas({
       r.width = Math.min(r.width, width - r.x);
       r.height = Math.min(r.height, height - r.y);
     }
+    draftRef.current = r;
     setDraft(r);
   }
   function end(e: React.PointerEvent) {
     if (!drag.current) return;
-    if (!pan && draft && draft.width >= 2 && draft.height >= 2) onChange(draft);
+    const finalRoi = draftRef.current;
+    const distance = Math.hypot(e.clientX - drag.current.clientX, e.clientY - drag.current.clientY);
+    if (
+      e.type !== 'pointercancel' &&
+      !pan &&
+      !readOnly &&
+      distance >= 3 &&
+      finalRoi &&
+      finalRoi.width >= 2 &&
+      finalRoi.height >= 2
+    ) {
+      onChange(finalRoi);
+      setDrawing(false);
+    }
     drag.current = null;
+    draftRef.current = null;
     setDraft(null);
     if (svg.current?.hasPointerCapture(e.pointerId)) svg.current.releasePointerCapture(e.pointerId);
   }
@@ -124,7 +150,10 @@ export function RegionCanvas({
           <Button
             size="icon"
             variant={!pan ? 'default' : 'ghost'}
-            onClick={() => setPan(false)}
+            onClick={() => {
+              setPan(false);
+              setDrawing(true);
+            }}
             aria-label="Chọn vùng"
           >
             <MousePointer2 size={16} />
@@ -174,6 +203,7 @@ export function RegionCanvas({
             aria-label="Vẽ vùng hình chữ nhật trên ảnh"
             className="roi-svg"
           >
+            <rect x="0" y="0" width={width} height={height} fill="transparent" pointerEvents="all" />
             {regions.map((region, i) => (
               <g key={i}>
                 <rect
@@ -199,7 +229,19 @@ export function RegionCanvas({
                   fill="transparent"
                   stroke="#06b6d4"
                   strokeWidth={2 / scale}
-                  onPointerDown={(e) => start(e, 'move')}
+                  onPointerDown={(e) =>
+                    start(
+                      e,
+                      drawing ||
+                        (displayed.x === 0 &&
+                          displayed.y === 0 &&
+                          displayed.width === width &&
+                          displayed.height === height)
+                        ? 'new'
+                        : 'move',
+                    )
+                  }
+                  style={{ cursor: drawing ? 'crosshair' : 'move' }}
                 />
                 {!readOnly &&
                   [

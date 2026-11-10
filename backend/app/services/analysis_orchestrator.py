@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.db.base import utcnow
-from app.db.models import AnalysisResult, AnalysisSession, PreprocessingRun
+from app.db.models import AnalysisResult, AnalysisSession, Organization, PreprocessingRun, SealImpression
 from app.db.repositories import audit, public
 from app.matching.base import MatchInput
 from app.matching.registry import get_provider
@@ -29,7 +29,7 @@ def preprocessing_snapshot(db, asset):
     }
 
 
-async def compare(db, session_id, body, user):
+async def compare(db, session_id, body, user, *, library_scan=False, candidate_ids=None):
     if not body.consent:
         raise AppError(422, "consent_required", "Bạn cần cho phép gửi ảnh tới OpenAI trước khi phân tích.")
     if not get_settings().openai_api_key.get_secret_value():
@@ -40,6 +40,8 @@ async def compare(db, session_id, body, user):
         )
     # Row lock protects the state transition from concurrent requests in multiple workers.
     session = db.scalar(select(AnalysisSession).where(AnalysisSession.id == session_id).with_for_update())
+    if session.mode == "organization_search" and not library_scan:
+        raise AppError(422, "search_resume", "Hãy dùng chức năng tiếp tục tra cứu thư viện cho phiên này.")
     if session.status == "running":
         stale_after = (
             get_settings().openai_request_timeout_seconds * get_settings().openai_max_compare_candidates + 120
@@ -55,7 +57,11 @@ async def compare(db, session_id, body, user):
             old.is_selected = False
         add_candidates(db, session, body.candidates, user)
     candidates = active_candidates(db, session)
-    if not candidates or len(candidates) > get_settings().openai_max_compare_candidates:
+    if candidate_ids is not None:
+        candidates = [c for c in candidates if c.id in candidate_ids]
+    if not candidates or (
+        not library_scan and len(candidates) > get_settings().openai_max_compare_candidates
+    ):
         raise AppError(422, "candidate_limit", "Danh sách ảnh tham chiếu không hợp lệ.")
     references = [normalized_asset(db, c.reference_asset_id, user) for c in candidates]
     session.status = "running"
@@ -79,7 +85,22 @@ async def compare(db, session_id, body, user):
                 "query": preprocessing_snapshot(db, query),
                 "reference": preprocessing_snapshot(db, reference),
                 "consent_at": session.consent_at.isoformat(),
+                "vision_input": {
+                    "detail": "high",
+                    "max_side": get_settings().openai_max_image_side,
+                    "readability_policy": "upscale_at_most_4x_to_1024",
+                    "image_count": 2,
+                },
             }
+            if candidate.reference_impression_id:
+                impression = db.get(SealImpression, candidate.reference_impression_id)
+                organization = db.get(Organization, impression.organization_id)
+                snapshot["reference_organization"] = {
+                    "id": str(organization.id),
+                    "name": organization.name,
+                    "code": organization.code,
+                    "impression_id": str(impression.id),
+                }
             try:
                 output = await provider.analyse(
                     MatchInput(
@@ -89,7 +110,7 @@ async def compare(db, session_id, body, user):
                             "roi_confirmed": True,
                             "query_preprocessing": snapshot["query"]["preprocessing"]["parameters"],
                             "reference_preprocessing": snapshot["reference"]["preprocessing"]["parameters"],
-                            "user_notes": session.processing_notes,
+                            "user_notes": None if library_scan else session.processing_notes,
                         },
                     )
                 )
@@ -125,6 +146,7 @@ async def compare(db, session_id, body, user):
                     session.id,
                     {"candidate_id": str(candidate.id), "status": result.status},
                 )
+                session.updated_at = utcnow()
                 db.commit()
             except (AppError, asyncio.CancelledError) as exc:
                 error = (
@@ -150,6 +172,7 @@ async def compare(db, session_id, body, user):
                         input_metadata=snapshot,
                     )
                 )
+                session.updated_at = utcnow()
                 db.commit()
                 raise
         session.status = "completed"

@@ -30,6 +30,7 @@ os.environ.update(
         "STORAGE_ROOT": tempfile.mkdtemp(prefix="seal-e2e-"),
         "APP_ENV": "development",
         "OPENAI_API_KEY": "e2e-test-only-not-a-real-key",
+        "OPENAI_MODEL": "gpt-4.1",
         "SESSION_SECRET_KEY": secrets.token_urlsafe(48),
         "FRONTEND_ORIGIN": "http://localhost:15174",
     }
@@ -51,10 +52,16 @@ from app.seed import seed
 
 
 def mock_transport(request):
+    payload = json.loads(request.content)
+    context_text = payload["input"][1]["content"][0]["text"]
+    context = json.loads(context_text[context_text.index("{") :])
+    marker = context.get("reference_preprocessing", {}).get("brightness", 0)
+    lookup_fixture = context.get("query_preprocessing", {}).get("gamma") == 1.77
+    score = {11: 96, 22: 90, 33: 65, 44: 30}.get(marker, 40) if lookup_fixture else 80
     comparison = {
         "status": "success",
         "verdict": "visually_similar",
-        "visual_similarity_score": 80,
+        "visual_similarity_score": score,
         "visual_confidence_label": "low",
         "same_design_plausible": None,
         "summary_vi": "DEMO — không phải AI thật. Hai ảnh thử nghiệm có vòng tròn và chữ DEMO.",

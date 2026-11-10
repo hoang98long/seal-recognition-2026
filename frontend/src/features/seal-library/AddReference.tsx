@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, LoaderCircle, Plus, Save } from 'lucide-react';
 import { api, post, previewUrl } from '../../lib/api';
-import type { Asset, Design, Impression, Organization, Page } from '../../types';
+import { assetLabel } from '../../lib/utils';
+import type { Asset, Design, Document, Impression, Organization, Page } from '../../types';
 import { Button } from '../../components/ui/button';
 import { ErrorBox, PageHeader, UploadBox } from '../../components/shared';
 import { useAuth } from '../auth/Auth';
@@ -23,6 +24,11 @@ export function AddReference() {
   const [sealType, setSealType] = useState('other');
   const [note, setNote] = useState('');
   const [asset, setAsset] = useState<Asset | null>(null);
+  const [document, setDocument] = useState<Document | null>(null);
+  const [files, setFiles] = useState<{ asset: Asset; document: Document }[]>([]);
+  const [version, setVersion] = useState(0);
+  const [loadingDocument, setLoadingDocument] = useState(false);
+  const completedFiles = useRef(new Set<string>());
   const [prepared, setPrepared] = useState<PreparedStamp | null>(null);
   const [uploading, setUploading] = useState(false);
   const [preparing, setPreparing] = useState(false);
@@ -30,7 +36,70 @@ export function AddReference() {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState<Impression | null>(null);
   const submitting = useRef(false);
-  const busy = uploading || preparing || saving;
+  const busy = uploading || preparing || saving || loadingDocument;
+  const linkedDocument = search.get('document');
+  const processedAssets = useQuery({
+    queryKey: ['processed-assets'],
+    queryFn: () => api<Page<Asset>>('/assets?kind=processed_stamp&page_size=100'),
+  });
+  const linkedAsset = search.get('asset');
+  const [existingAssetId, setExistingAssetId] = useState('');
+  async function useProcessed(id: string) {
+    setLoadingDocument(true);
+    setError('');
+    try {
+      const ready = await api<PreparedStamp | null>(`/preprocessing/by-output/${id}`);
+      if (!ready) throw new Error('Ảnh này chưa có thông số xử lý. Hãy chọn nguồn và cắt lại.');
+      const source = await api<Asset>(`/assets/${ready.run.source_asset_id}`);
+      const doc = await post<Document>('/documents', {
+        file_asset_id: source.id,
+        display_name: source.original_filename,
+        organization_id: newOrganization ? null : organization || null,
+      });
+      const file = { asset: source, document: doc };
+      chooseFile(file);
+      setPrepared(ready);
+      setExistingAssetId(id);
+      setFiles((current) => [...current.filter((old) => old.asset.id !== source.id), file]);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoadingDocument(false);
+    }
+  }
+  useEffect(() => {
+    if (linkedAsset) void useProcessed(linkedAsset);
+  }, [linkedAsset]);
+  useEffect(() => {
+    if (!linkedDocument) return;
+    let cancelled = false;
+    setLoadingDocument(true);
+    api<Document & { asset: Asset }>(`/documents/${linkedDocument}`)
+      .then((doc) => {
+        if (cancelled) return;
+        setAsset(doc.asset);
+        setDocument(doc);
+        setName(doc.asset.original_filename.replace(/\.[^.]+$/, ''));
+        setFiles([{ asset: doc.asset, document: doc }]);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingDocument(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [linkedDocument]);
+  function chooseFile(file: { asset: Asset; document: Document }) {
+    setAsset(file.asset);
+    setDocument(file.document);
+    setPrepared(null);
+    setError('');
+    setVersion((v) => v + 1);
+    if (!design) setName(file.asset.original_filename.replace(/\.[^.]+$/, '').slice(0, 500));
+  }
   const organizations = useQuery({
     queryKey: ['intake-organizations', orgSearch, organization],
     queryFn: async () => {
@@ -72,7 +141,10 @@ export function AddReference() {
         name: name.trim(),
         seal_type: sealType,
         note: note.trim() || null,
+        source_document_id: document?.id || null,
+        source_page: prepared.run.source_page,
       });
+      if (asset) completedFiles.current.add(asset.id);
       setSaved(result);
       await Promise.all(
         [
@@ -86,6 +158,9 @@ export function AddReference() {
           'reference-options',
           'intake-organizations',
           'intake-designs',
+          'organization-documents',
+          'profiles',
+          'search-inventory',
         ].map((key) => qc.invalidateQueries({ queryKey: [key] })),
       );
     } catch (e) {
@@ -112,6 +187,9 @@ export function AddReference() {
           <p>{saved.organization_name}</p>
           <div className="header-actions">
             <Button asChild>
+              <Link to={`/compare/library?q=${saved.image_asset_id}`}>Tra cứu Top 3 tổ chức</Link>
+            </Button>
+            <Button asChild>
               <Link to={`/compare/document-stamp?reference=${saved.id}`}>So khớp văn bản với dấu này</Link>
             </Button>
             <Button
@@ -129,8 +207,37 @@ export function AddReference() {
               <Plus size={16} />
               Thêm ảnh dấu khác
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOrganization(saved.organization_id);
+                setNewOrganization(false);
+                setDesign('');
+                setPrepared(null);
+                setName(`${name} · dấu tiếp theo`.slice(0, 500));
+                setPrepared(null);
+                setVersion((v) => v + 1);
+                setSaved(null);
+              }}
+            >
+              Tách dấu khác từ tài liệu này
+            </Button>
+            {files.some((file) => !completedFiles.current.has(file.asset.id)) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const next = files.find((file) => !completedFiles.current.has(file.asset.id));
+                  if (next) chooseFile(next);
+                  setOrganization(saved.organization_id);
+                  setNewOrganization(false);
+                  setSaved(null);
+                }}
+              >
+                Tài liệu tiếp theo
+              </Button>
+            )}
             <Button variant="ghost" asChild>
-              <Link to={`/seal-library?organization=${saved.organization_id}`}>Xem trong thư viện</Link>
+              <Link to={`/organizations/${saved.organization_id}`}>Xem trong thư viện</Link>
             </Button>
           </div>
         </section>
@@ -141,7 +248,7 @@ export function AddReference() {
       <PageHeader
         eyebrow="THƯ VIỆN MẪU DẤU"
         title="Thêm con dấu tổ chức"
-        description="Chọn tổ chức, tải ảnh và xác nhận vùng dấu. Thông tin mẫu được lưu cùng ảnh trong một lần."
+        description="Chọn tổ chức, tải một hoặc nhiều tài liệu, khoanh vùng dấu rồi lưu vào thư viện của đơn vị."
       >
         <Button variant="outline" disabled={busy} asChild>
           <Link to="/seal-library">
@@ -170,6 +277,7 @@ export function AddReference() {
               onClick={() => {
                 setNewOrganization(true);
                 setDesign('');
+                setPrepared(null);
               }}
             >
               Tạo tổ chức mới
@@ -206,6 +314,7 @@ export function AddReference() {
                   onChange={(e) => {
                     setOrganization(e.target.value);
                     setDesign('');
+                    setPrepared(null);
                   }}
                 >
                   <option value="">{organizations.isPending ? 'Đang tải tổ chức…' : 'Chọn tổ chức'}</option>
@@ -283,31 +392,70 @@ export function AddReference() {
         </section>
         <div className="intake-image">
           <section className="panel intake-upload">
-            <h2>3. Tải ảnh con dấu</h2>
+            <h2>3. Tải tài liệu và tách con dấu</h2>
             <p className="muted">
               Dùng ảnh dấu riêng hoặc chọn trang có dấu trong PDF. Vùng mực đỏ được gợi ý tự động.
             </p>
             <UploadBox
               disabled={saving || preparing}
+              multiple
               label="Tải ảnh con dấu tổ chức"
               kind="original_stamp"
               onBusyChange={setUploading}
-              onUploaded={(a) => {
-                setAsset(a);
-                setPrepared(null);
-                setError('');
-                if (!design) setName(a.original_filename.replace(/\.[^.]+$/, '').slice(0, 500));
+              onUploaded={async (a) => {
+                const doc = await post<Document>('/documents', {
+                  file_asset_id: a.id,
+                  display_name: a.original_filename,
+                  organization_id: newOrganization ? null : organization || null,
+                });
+                const file = { asset: a, document: doc };
+                setFiles((current) => [...current.filter((old) => old.asset.id !== a.id), file]);
+                chooseFile(file);
               }}
             />
+            <label className="existing-asset-picker">
+              Hoặc chọn ảnh đã xử lý
+              <select
+                value={existingAssetId}
+                disabled={busy}
+                onChange={(e) => {
+                  if (e.target.value) void useProcessed(e.target.value);
+                }}
+              >
+                <option value="">Chọn ảnh trong kho để lưu vào tổ chức</option>
+                {processedAssets.data?.items.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {assetLabel(a)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {files.length > 0 && (
+              <div className="file-queue" aria-label="Danh sách tài liệu đã tải">
+                {files.map((file) => (
+                  <button
+                    key={file.asset.id}
+                    disabled={busy}
+                    className={file.asset.id === asset?.id ? 'active' : ''}
+                    onClick={() => chooseFile(file)}
+                  >
+                    {completedFiles.current.has(file.asset.id) ? '✓ ' : ''}
+                    {file.asset.original_filename} · {file.asset.page_count} trang
+                  </button>
+                ))}
+              </div>
+            )}
+            {error && <ErrorBox error={new Error(error)} />}
           </section>
           {asset && (
             <StampPreparation
-              key={asset.id}
+              key={`${asset.id}-${version}-${newOrganization ? 'new' : organization}`}
               asset={asset}
               role="K"
-              initial={null}
+              initial={prepared}
               onPrepared={onPrepared}
               onBusyChange={setPreparing}
+              organizationId={newOrganization ? undefined : organization || undefined}
             />
           )}
         </div>

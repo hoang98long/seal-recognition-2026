@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from './features/auth/Auth';
 import { App } from './app/App';
 import './styles.css';
+import './features/organizations/workspace.css';
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 });

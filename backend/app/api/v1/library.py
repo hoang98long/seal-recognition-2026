@@ -14,6 +14,7 @@ from app.db.models import (
     SealDesign,
     SealDevice,
     SealImpression,
+    SourceDocument,
     User,
 )
 from app.db.repositories import audit, page_query, public, record
@@ -53,8 +54,23 @@ def reference_intake(body: ReferenceIntakeIn, user: User = Depends(editor), db: 
         image_asset_id=asset.id,
         capture_method="uploaded",
         note=body.note,
+        source_document_id=body.source_document_id,
+        source_page=body.source_page,
     ).model_dump()
+    if body.source_document_id:
+        document = record(db, SourceDocument, body.source_document_id)
+        if asset.source_metadata.get("source_asset_id") != str(document.file_asset_id):
+            raise AppError(422, "document_source", "Ảnh đã xử lý không được tạo từ tài liệu nguồn đã chọn.")
+        if document.organization_id not in (None, organization.id):
+            raise AppError(422, "document_organization", "Tài liệu không thuộc tổ chức đang chọn.")
+        if document.uploaded_by == user.id or user.role == "admin":
+            document.organization_id = organization.id
     validate_references(db, SealImpression, values, user)
+    if asset.uploaded_by == user.id and not asset.source_metadata.get("display_name_custom"):
+        asset.display_name = (
+            f"{design.name} ({organization.code or organization.short_name or organization.name})"[:230]
+            + f" · {str(asset.id)[:8]}"
+        )
     impression = SealImpression(**values, created_by=user.id)
     db.add(impression)
     db.flush()

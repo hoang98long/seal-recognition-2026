@@ -86,6 +86,8 @@ class ImpressionIn(StrictModel):
 
 
 class ReferenceIntakeIn(StrictModel):
+    source_document_id: uuid.UUID | None = None
+    source_page: int | None = Field(default=None, ge=1)
     image_asset_id: uuid.UUID
     organization_id: uuid.UUID | None = None
     organization_name: str | None = Field(default=None, min_length=1, max_length=500)
@@ -104,6 +106,7 @@ class ReferenceIntakeIn(StrictModel):
 
 
 class DocumentIn(StrictModel):
+    organization_id: uuid.UUID | None = None
     file_asset_id: uuid.UUID
     display_name: str = Field(min_length=1, max_length=500)
     document_no: str | None = Field(default=None, max_length=120)
@@ -141,6 +144,8 @@ class Parameters(StrictModel):
 
 
 class PreprocessIn(StrictModel):
+    organization_id: uuid.UUID | None = None
+    output_name: str | None = Field(default=None, min_length=1, max_length=200)
     source_asset_id: uuid.UUID
     page: int = Field(default=1, ge=1)
     roi: ROI
@@ -151,9 +156,29 @@ class PreprocessIn(StrictModel):
 
 
 class ProfileIn(StrictModel):
+    organization_id: uuid.UUID | None = None
     name: str = Field(min_length=1, max_length=200)
     parameters: Parameters
     is_default: bool = False
+
+
+class AssetNameIn(StrictModel):
+    display_name: str = Field(min_length=1, max_length=250)
+
+
+class OrganizationLinkIn(StrictModel):
+    organization_id: uuid.UUID | None
+
+
+class LibrarySearchIn(StrictModel):
+    query_asset_id: uuid.UUID
+    consent: bool
+    expected_reference_count: int = Field(ge=1)
+    title: str = Field(default="Tra cứu con dấu theo tổ chức", min_length=1, max_length=250)
+
+
+class SearchResumeIn(StrictModel):
+    consent: bool
 
 
 class CandidateIn(StrictModel):

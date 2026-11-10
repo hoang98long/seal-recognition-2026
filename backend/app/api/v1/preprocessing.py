@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import or_, select
@@ -6,10 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError
 from app.core.security import current_user, editor, limiter
-from app.db.models import PreprocessingProfile, PreprocessingRun, User
+from app.db.models import Organization, PreprocessingProfile, PreprocessingRun, User
 from app.db.repositories import audit, public, record
 from app.db.session import get_db
-from app.schemas.common import PreprocessIn, ProfileIn
+from app.schemas.common import OrganizationLinkIn, PreprocessIn, ProfileIn
 from app.services.image_preprocessing_service import PIPELINE_VERSION, process, suggest_roi
 from app.services.pdf_render_service import load_page, png_bytes
 from app.services.storage_service import authorized_asset, store
@@ -18,27 +19,33 @@ router = APIRouter(prefix="/preprocessing", tags=["Tiền xử lý"])
 
 
 @router.get("/profiles")
-def profiles(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    return [
-        public(x)
-        for x in db.scalars(
-            select(PreprocessingProfile)
-            .where(
-                or_(
-                    PreprocessingProfile.owner_user_id == user.id,
-                    PreprocessingProfile.owner_user_id.is_(None),
-                )
-            )
-            .order_by(PreprocessingProfile.created_at.desc())
+def profiles(
+    organization_id: uuid.UUID | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    query = select(PreprocessingProfile).where(
+        or_(
+            PreprocessingProfile.owner_user_id == user.id,
+            PreprocessingProfile.owner_user_id.is_(None),
+            PreprocessingProfile.organization_id.is_not(None),
         )
-    ]
+    )
+    if organization_id:
+        record(db, Organization, organization_id)
+        query = query.where(PreprocessingProfile.organization_id == organization_id)
+    return [public(x) for x in db.scalars(query.order_by(PreprocessingProfile.created_at.desc()))]
 
 
 @router.post("/profiles", status_code=201)
 def create_profile(body: ProfileIn, user: User = Depends(editor), db: Session = Depends(get_db)):
+    if body.organization_id:
+        record(db, Organization, body.organization_id)
     if body.is_default:
         for old in db.scalars(
-            select(PreprocessingProfile).where(PreprocessingProfile.owner_user_id == user.id)
+            select(PreprocessingProfile)
+            .where(PreprocessingProfile.owner_user_id == user.id)
+            .where(PreprocessingProfile.organization_id == body.organization_id)
         ):
             old.is_default = False
     item = PreprocessingProfile(owner_user_id=user.id, **body.model_dump())
@@ -47,6 +54,23 @@ def create_profile(body: ProfileIn, user: User = Depends(editor), db: Session = 
     audit(db, user, "profile_create", "preprocessing_profile", item.id)
     db.commit()
     return public(item)
+
+
+@router.patch("/profiles/{ident}/organization")
+def link_profile(
+    ident: uuid.UUID, body: OrganizationLinkIn, user: User = Depends(editor), db: Session = Depends(get_db)
+):
+    profile = record(db, PreprocessingProfile, ident)
+    if profile.owner_user_id != user.id and user.role != "admin":
+        raise AppError(
+            403, "profile_owner", "Chỉ người tạo hoặc quản trị viên được gắn cấu hình vào tổ chức."
+        )
+    if body.organization_id:
+        record(db, Organization, body.organization_id)
+    profile.organization_id = body.organization_id
+    audit(db, user, "profile_organization", "preprocessing_profile", profile.id)
+    db.commit()
+    return public(profile)
 
 
 @router.get("/suggest-roi/{asset_id}")
@@ -76,10 +100,13 @@ def apply(body: PreprocessIn, user: User = Depends(editor), db: Session = Depend
     if not body.roi_confirmed:
         raise AppError(422, "roi_confirmation", "Vui lòng xác nhận vùng con dấu trước khi lưu.")
     asset = authorized_asset(db, body.source_asset_id, user)
+    organization = record(db, Organization, body.organization_id) if body.organization_id else None
     if body.profile_id:
         profile = record(db, PreprocessingProfile, body.profile_id)
-        if profile.owner_user_id not in {None, user.id}:
+        if profile.owner_user_id not in {None, user.id} and not profile.organization_id:
             raise AppError(403, "profile_private", "Hồ sơ xử lý thuộc người dùng khác.")
+        if profile.organization_id and profile.organization_id != body.organization_id:
+            raise AppError(422, "profile_organization", "Cấu hình xử lý không thuộc tổ chức đã chọn.")
     source = load_page(asset, body.page)
     whole_page = (
         body.roi.x == 0
@@ -97,7 +124,7 @@ def apply(body: PreprocessIn, user: User = Depends(editor), db: Session = Depend
     saved = store(
         db,
         png_bytes(output),
-        "con-dau-da-xu-ly.png",
+        f"{Path(asset.original_filename).stem[:170]}-trang-{body.page}-con-dau.png",
         {"media_type": "image/png", "extension": ".png", "width": output.width, "height": output.height},
         user,
         "processed_stamp",
@@ -108,7 +135,15 @@ def apply(body: PreprocessIn, user: User = Depends(editor), db: Session = Depend
             "whole_source_confirmed": whole_page and body.allow_full_page,
             "roi": body.roi.model_dump(),
             "pipeline_version": PIPELINE_VERSION,
+            "organization_id": str(organization.id) if organization else None,
         },
+    )
+    org_label = (
+        f" ({organization.code or organization.short_name or organization.name})" if organization else ""
+    )
+    saved.display_name = (
+        f"{body.output_name or Path(asset.original_filename).stem} · trang {body.page}{org_label}"[:230]
+        + f" · {str(saved.id)[:8]}"
     )
     run = PreprocessingRun(
         source_asset_id=asset.id,

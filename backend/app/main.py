@@ -9,7 +9,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from app.api.v1 import analyses, auth, documents, library, preprocessing, reports, system, users
+from app.api.v1 import (
+    analyses,
+    auth,
+    documents,
+    library,
+    library_search,
+    preprocessing,
+    reports,
+    system,
+    users,
+)
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 
@@ -108,6 +118,7 @@ for router in [
     documents.router,
     preprocessing.router,
     analyses.router,
+    library_search.router,
     reports.router,
     system.router,
 ]:

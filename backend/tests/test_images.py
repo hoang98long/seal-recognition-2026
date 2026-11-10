@@ -96,3 +96,16 @@ def test_private_files_and_dedup(analyst, client, viewer, image_bytes):
     assert viewer.get(f"/api/v1/assets/{first['id']}/preview").status_code == 403
     assert viewer.get(f"/api/v1/assets/{first['id']}").status_code == 403
     assert client.get(f"/api/v1/assets/{first['id']}/download").status_code == 200
+
+
+def test_small_seal_readability_image_keeps_aspect_ratio(tmp_path, image_bytes):
+    import base64
+
+    from app.matching.providers.openai_vision import image_data
+
+    path = tmp_path / "small-seal.png"
+    path.write_bytes(image_bytes)
+    encoded = image_data(path)
+    result = Image.open(io.BytesIO(base64.b64decode(encoded.split(",")[1])))
+    assert result.size == (960, 800)
+    assert path.read_bytes() == image_bytes

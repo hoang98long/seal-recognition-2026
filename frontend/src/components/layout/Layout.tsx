@@ -30,12 +30,13 @@ import { Notifications } from './Notifications';
 
 const links = [
   ['/dashboard', 'Tổng quan', LayoutDashboard],
+  ['/organizations', 'Tổ chức & thư viện dấu', Building2],
+  ['/compare/library', 'Tra cứu Top 3 tổ chức', ScanLine],
   ['/documents', 'Tài liệu nguồn', FileText],
   ['/preprocessing', 'Xưởng xử lý ảnh', FlaskConical],
   ['/compare/document-stamp', 'Văn bản & ảnh dấu', Files],
   ['/compare/new', 'So khớp nâng cao', ScanLine],
   ['/seal-library', 'Thư viện mẫu dấu', BookOpen],
-  ['/organizations', 'Cơ quan / tổ chức', Building2],
   ['/history', 'Lịch sử phân tích', History],
   ['/reports', 'Báo cáo', FileText],
   ['/settings', 'Cài đặt', Settings],

@@ -27,6 +27,7 @@ test_url = base_url.update_query_dict({"options": f"-csearch_path={test_schema}"
 os.environ["DATABASE_URL"] = test_url.render_as_string(hide_password=False)
 os.environ["STORAGE_ROOT"] = tempfile.mkdtemp(prefix="seal-tests-")
 os.environ["OPENAI_API_KEY"] = ""
+os.environ["OPENAI_MODEL"] = "gpt-4.1"
 os.environ["APP_ENV"] = "development"
 os.environ["SESSION_SECRET_KEY"] = secrets.token_urlsafe(48)
 get_settings.cache_clear()

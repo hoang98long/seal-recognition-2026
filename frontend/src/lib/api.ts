@@ -45,7 +45,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 export const post = <T>(path: string, body: unknown) =>
   api<T>(path, { method: 'POST', body: JSON.stringify(body) });
-export const previewUrl = (id: string, page = 1) => `/api/v1/assets/${id}/preview?page=${page}`;
+export const previewUrl = (id: string, page = 1, thumb = false) =>
+  `/api/v1/assets/${id}/preview?page=${page}${thumb ? '&thumb=true' : ''}`;
 export async function upload(file: File, kind = 'document') {
   const body = new FormData();
   body.append('file', file);

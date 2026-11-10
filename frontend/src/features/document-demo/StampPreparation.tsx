@@ -8,6 +8,9 @@ import type { Asset, Parameters, ROI, Run } from '../../types';
 import { RegionCanvas } from '../../components/image-editor/RegionCanvas';
 import { ErrorBox, Loading } from '../../components/shared';
 import { Button } from '../../components/ui/button';
+import { AssetName } from '../../components/AssetName';
+import { assetLabel } from '../../lib/utils';
+import type { Profile } from '../../types';
 
 export interface PreparedStamp {
   asset: Asset;
@@ -20,12 +23,14 @@ export function StampPreparation({
   initial,
   onPrepared,
   onBusyChange,
+  organizationId,
 }: {
   asset: Asset;
   role: 'Q' | 'K';
   initial: PreparedStamp | null;
   onPrepared: (value: PreparedStamp | null) => void;
   onBusyChange: (busy: boolean) => void;
+  organizationId?: string;
 }) {
   const [page, setPage] = useState(initial?.run.source_page || 1);
   const [roi, setRoi] = useState<ROI | null>(initial?.run.roi_geometry || null);
@@ -38,6 +43,12 @@ export function StampPreparation({
   const [preview, setPreview] = useState('');
   const [previewBusy, setPreviewBusy] = useState(false);
   const [error, setError] = useState('');
+  const [profile, setProfile] = useState('');
+  const profiles = useQuery({
+    queryKey: ['profiles', organizationId],
+    queryFn: () => api<Profile[]>(`/preprocessing/profiles?organization_id=${organizationId}`),
+    enabled: !!organizationId,
+  });
   const suggestedPages = useRef(new Set(initial ? [initial.run.source_page] : []));
   const source = useQuery({
     queryKey: ['page-size', asset.id, page],
@@ -79,6 +90,7 @@ export function StampPreparation({
     invalidate();
   }
   function changeParameters(next: Parameters) {
+    setProfile('');
     setParameters(next);
     invalidate();
   }
@@ -139,6 +151,8 @@ export function StampPreparation({
         parameters,
         roi_confirmed: true,
         allow_full_page: allowFull,
+        organization_id: organizationId || null,
+        profile_id: profile || null,
       });
       setSaved(result);
       onPrepared(result);
@@ -188,8 +202,30 @@ export function StampPreparation({
           </span>
         )}
       </div>
+      {asset.page_count > 1 && (
+        <div className="page-filmstrip" aria-label={`Chọn nhanh trang ${role}`}>
+          {Array.from(
+            { length: Math.min(6, asset.page_count - Math.floor((page - 1) / 6) * 6) },
+            (_, i) => Math.floor((page - 1) / 6) * 6 + i + 1,
+          ).map((p) => (
+            <button
+              key={p}
+              className={p === page ? 'active' : ''}
+              disabled={saving}
+              aria-label={`Xem trang ${p} ảnh ${role}`}
+              onClick={() => choosePage(p)}
+            >
+              <img src={previewUrl(asset.id, p, true)} alt="" loading="lazy" />
+              <span>Trang {p}</span>
+            </button>
+          ))}
+          <button disabled={saving} onClick={() => choosePage(asset.page_count)}>
+            Trang cuối
+          </button>
+        </div>
+      )}
       <div className="demo-prep-source">
-        <strong title={asset.original_filename}>{asset.original_filename}</strong>
+        <strong title={assetLabel(asset)}>{assetLabel(asset)}</strong>
         {asset.page_count > 1 && (
           <label>
             Trang / khung ảnh {role}
@@ -203,6 +239,18 @@ export function StampPreparation({
           </label>
         )}
       </div>
+      {asset.media_type === 'application/pdf' && (
+        <p className="source-original-link">
+          <a
+            className="text-link"
+            href={`/api/v1/assets/${asset.id}/download`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Mở PDF gốc để kiểm tra trang / con dấu
+          </a>
+        </p>
+      )}
       {source.isPending ? (
         <Loading />
       ) : source.error ? (
@@ -218,6 +266,49 @@ export function StampPreparation({
             readOnly={saving}
           />
           <div className="demo-prep-controls">
+            <div className="segmented ink-presets">
+              {[
+                ['original', 'Giữ ảnh gốc'],
+                ['red', 'Tách mực đỏ'],
+                ['bw', 'Dấu đen / xám'],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  disabled={saving}
+                  onClick={() => {
+                    setProfile('');
+                    changeParameters(preprocessingPreset(key));
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              Mực đỏ có thể lọc chữ ký đen/xanh. Với dấu đen và chữ ký cùng màu, hãy khoanh sát dấu; phần che
+              khuất sẽ được AI ghi là chưa rõ.
+            </p>
+            {organizationId && (
+              <label>
+                Cấu hình xử lý của tổ chức
+                <select
+                  value={profile}
+                  disabled={saving}
+                  onChange={(e) => {
+                    const selected = profiles.data?.find((p) => p.id === e.target.value);
+                    if (selected) changeParameters(selected.parameters);
+                    setProfile(e.target.value);
+                  }}
+                >
+                  <option value="">Tùy chỉnh</option>
+                  {profiles.data?.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="demo-prep-actions">
               <Button
                 variant="outline"
@@ -347,6 +438,7 @@ export function StampPreparation({
               <p>{previewBusy ? 'Đang xử lý bản xem trước…' : 'Bản xem trước xuất hiện khi có vùng chọn.'}</p>
             )}
           </div>
+          {saved && <AssetName asset={saved.asset} />}
         </>
       )}
     </section>

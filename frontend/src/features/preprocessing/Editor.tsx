@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Check,
@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post, previewUrl, request } from '../../lib/api';
-import type { Asset, Page, Parameters, Profile, ROI, Run } from '../../types';
+import type { Asset, Organization, Page, Parameters, Profile, ROI, Run } from '../../types';
+import { AssetName } from '../../components/AssetName';
+import { assetLabel } from '../../lib/utils';
 import { ErrorBox, Loading, Modal, PageHeader, UploadBox } from '../../components/shared';
 import { Button } from '../../components/ui/button';
 import { RegionCanvas } from '../../components/image-editor/RegionCanvas';
@@ -27,6 +29,9 @@ export function Editor() {
   const [search, setSearch] = useSearchParams();
   const { runId } = useParams();
   const [assetId, setAssetId] = useState(search.get('asset') || '');
+  const [organization, setOrganization] = useState(search.get('organization') || '');
+  const initializedSource = useRef('');
+  const initialProfileApplied = useRef(false);
   const [page, setPage] = useState(1);
   const [state, setState] = useState<EditorState>({
     parameters: { ...defaults },
@@ -59,8 +64,13 @@ export function Editor() {
     enabled: !!assetId,
   });
   const profiles = useQuery({
-    queryKey: ['profiles'],
-    queryFn: () => api<Profile[]>('/preprocessing/profiles'),
+    queryKey: ['profiles', organization],
+    queryFn: () =>
+      api<Profile[]>(`/preprocessing/profiles${organization ? `?organization_id=${organization}` : ''}`),
+  });
+  const organizations = useQuery({
+    queryKey: ['org-options'],
+    queryFn: () => api<Page<Organization>>('/organizations?page_size=100'),
   });
   const source = useQuery({
     queryKey: ['page-size', assetId, page],
@@ -83,13 +93,18 @@ export function Editor() {
   }, [runId]);
   useEffect(() => {
     if (!source.data) return;
+    const sourceKey = `${assetId}:${page}`;
+    if (initializedSource.current === sourceKey) return;
+    initializedSource.current = sourceKey;
     const run = restore.current;
     setState(
       run
         ? { roi: run.roi_geometry, parameters: run.parameters }
         : {
             roi: { x: 0, y: 0, width: source.data.width, height: source.data.height },
-            parameters: { ...defaults },
+            parameters: profiles.data?.find((profile) => profile.id === profileId)?.parameters || {
+              ...defaults,
+            },
           },
     );
     restore.current = null;
@@ -98,8 +113,16 @@ export function Editor() {
     setSaved(null);
     setUndo([]);
     setRedo([]);
-    setProfileId(null);
   }, [source.data, assetId, page]);
+  useEffect(() => {
+    if (assetId && !source.data) return;
+    const initial = profiles.data?.find((x) => x.id === search.get('profile'));
+    if (initial && !initialProfileApplied.current) {
+      initialProfileApplied.current = true;
+      setState((old) => ({ ...old, parameters: initial.parameters }));
+      setProfileId(initial.id);
+    }
+  }, [profiles.data, search, assetId, source.data]);
   const p = state.parameters;
   const wholePage =
     !!source.data &&
@@ -155,9 +178,11 @@ export function Editor() {
     };
   }, [assetId, page, state, source.data, readOnly]);
   function chooseAsset(id: string) {
+    restore.current = null;
+    initializedSource.current = '';
     setAssetId(id);
     setPage(1);
-    setSearch({ asset: id });
+    setSearch({ asset: id, ...(organization ? { organization } : {}) });
     setSaved(null);
     setConfirmed(false);
   }
@@ -172,6 +197,7 @@ export function Editor() {
         profile_id: profileId,
         roi_confirmed: confirmed,
         allow_full_page: allowFullPage,
+        organization_id: organization || null,
       });
       setSaved(result.asset);
       await qc.invalidateQueries({ queryKey: ['assets-editor'] });
@@ -320,7 +346,7 @@ export function Editor() {
                 <option value="">— Chọn tài liệu —</option>
                 {assets.data?.items.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.original_filename} · {a.id.slice(0, 6)}
+                    {assetLabel(a)}
                   </option>
                 ))}
               </select>
@@ -468,22 +494,35 @@ export function Editor() {
                 )}
               </div>
               {saved && (
-                <div className="saved-bar">
-                  <span>
-                    <Check size={17} />
-                    Đã lưu phiên bản {saved.id.slice(0, 8)}
-                  </span>
-                  <Button size="sm" onClick={() => selectRole('Q')}>
-                    Chọn làm Q
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => selectRole('K')}>
-                    Chọn làm K
-                  </Button>
-                  <a href={`/api/v1/assets/${saved.id}/download`}>
-                    <Download size={18} />
-                    <span className="sr-only">Tải ảnh xử lý</span>
-                  </a>
-                </div>
+                <>
+                  <AssetName asset={saved} editable={!readOnly} />
+                  <div className="saved-bar">
+                    <span>
+                      <Check size={17} />
+                      Đã lưu phiên bản {saved.id.slice(0, 8)}
+                    </span>
+                    <Button size="sm" onClick={() => selectRole('Q')}>
+                      Chọn làm Q
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => selectRole('K')}>
+                      Chọn làm K
+                    </Button>
+                    <a href={`/api/v1/assets/${saved.id}/download`}>
+                      <Download size={18} />
+                      <span className="sr-only">Tải ảnh xử lý</span>
+                    </a>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link
+                        to={`/seal-library/add?asset=${saved.id}${organization ? `&organization=${organization}` : ''}`}
+                      >
+                        Lưu vào tổ chức
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/compare/library?q=${saved.id}`}>Tra cứu Top 3</Link>
+                    </Button>
+                  </div>
+                </>
               )}
             </>
           )}
@@ -505,6 +544,26 @@ export function Editor() {
             </Button>
           </div>
           <div className="parameters-content">
+            <label>
+              Tổ chức / đơn vị
+              <select
+                value={organization}
+                disabled={readOnly}
+                onChange={(e) => {
+                  setOrganization(e.target.value);
+                  setProfileId(null);
+                  setSaved(null);
+                }}
+              >
+                <option value="">Chưa gắn tổ chức</option>
+                {organizations.data?.items.map((o) => (
+                  <option value={o.id} key={o.id}>
+                    {o.code ? `${o.code} · ` : ''}
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               Cấu hình nhanh
               <select
@@ -528,7 +587,7 @@ export function Editor() {
               </select>
             </label>
             <label>
-              Hồ sơ cá nhân
+              Cấu hình xử lý của tổ chức
               <select
                 value={profileId || ''}
                 disabled={readOnly}
@@ -541,16 +600,23 @@ export function Editor() {
                 }}
               >
                 <option value="">Tùy chỉnh</option>
-                {profiles.data?.map((x) => (
-                  <option value={x.id} key={x.id}>
-                    {x.name}
-                  </option>
-                ))}
+                {profiles.data
+                  ?.filter((x) => (organization ? x.organization_id === organization : !x.organization_id))
+                  .map((x) => (
+                    <option value={x.id} key={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
               </select>
             </label>
-            <Button size="sm" variant="outline" disabled={readOnly} onClick={() => setProfileModal(true)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={readOnly || !organization}
+              onClick={() => setProfileModal(true)}
+            >
               <Copy size={14} />
-              Lưu hồ sơ thông số
+              Lưu cấu hình cho tổ chức
             </Button>
             <h3>Hình học & ánh sáng</h3>
             {slider('rotation', 'Góc xoay (độ)', -180, 180)}
@@ -654,7 +720,7 @@ export function Editor() {
         </aside>
       </div>
       {profileModal && (
-        <Modal title="Lưu hồ sơ xử lý cá nhân" onClose={() => setProfileModal(false)}>
+        <Modal title="Lưu cấu hình xử lý theo tổ chức" onClose={() => setProfileModal(false)}>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -664,10 +730,11 @@ export function Editor() {
                   name: profileName,
                   parameters: p,
                   is_default: false,
+                  organization_id: organization || null,
                 });
                 await qc.invalidateQueries({ queryKey: ['profiles'] });
                 setProfileModal(false);
-                toast.success('Đã lưu hồ sơ thông số.');
+                toast.success('Đã lưu cấu hình xử lý.');
               } catch (error) {
                 toast.error((error as Error).message);
               } finally {
@@ -676,7 +743,7 @@ export function Editor() {
             }}
           >
             <label>
-              Tên hồ sơ
+              Tên cấu hình
               <input
                 required
                 maxLength={200}
@@ -686,7 +753,7 @@ export function Editor() {
             </label>
             <div className="form-actions">
               <Button type="submit" disabled={profileSaving}>
-                Lưu hồ sơ
+                Lưu cấu hình
               </Button>
             </div>
           </form>

@@ -10,10 +10,10 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.core.security import current_user, editor
-from app.db.models import FileAsset, SourceDocument, User
+from app.db.models import FileAsset, Organization, SourceDocument, User
 from app.db.repositories import audit, page_query, public, record
 from app.db.session import get_db
-from app.schemas.common import DocumentIn
+from app.schemas.common import AssetNameIn, DocumentIn, OrganizationLinkIn
 from app.services.image_validation_service import validate_bytes
 from app.services.pdf_render_service import PDF_LOCK, load_page, png_bytes
 from app.services.storage_service import asset_path, authorized_asset, store
@@ -75,7 +75,9 @@ def download(ident: uuid.UUID, user: User = Depends(current_user), db: Session =
     return FileResponse(
         asset_path(asset),
         media_type=asset.media_type,
-        filename=asset.original_filename,
+        filename=(asset.display_name + ".png")
+        if asset.kind == "processed_stamp" and asset.display_name
+        else asset.original_filename,
         headers={"Cache-Control": "private, no-store"},
     )
 
@@ -85,13 +87,16 @@ def preview(
     ident: uuid.UUID,
     page: int = Query(1, ge=1),
     full: bool = False,
+    thumb: bool = False,
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
     asset = authorized_asset(db, ident, user)
     image = load_page(asset, page)
     width, height = image.size
-    if not full:
+    if thumb:
+        image.thumbnail((280, 280))
+    elif not full:
         image.thumbnail((1600, 1600))
     return Response(
         png_bytes(image),
@@ -107,6 +112,7 @@ def preview(
 @router.get("/documents")
 def documents(
     q: str = "",
+    organization_id: uuid.UUID | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=100),
     user: User = Depends(current_user),
@@ -115,6 +121,8 @@ def documents(
     query = select(SourceDocument)
     if user.role != "admin":
         query = query.where(SourceDocument.uploaded_by == user.id)
+    if organization_id:
+        query = query.where(SourceDocument.organization_id == organization_id)
     if q:
         query = query.where(SourceDocument.display_name.ilike(f"%{q[:200]}%"))
     return page_query(db, SourceDocument, query.order_by(SourceDocument.created_at.desc()), page, page_size)
@@ -123,8 +131,21 @@ def documents(
 @router.post("/documents", status_code=201)
 def create_document(body: DocumentIn, user: User = Depends(editor), db: Session = Depends(get_db)):
     asset = authorized_asset(db, body.file_asset_id, user)
+    if body.organization_id:
+        record(db, Organization, body.organization_id)
     existing = db.scalar(select(SourceDocument).where(SourceDocument.file_asset_id == asset.id))
     if existing:
+        if body.organization_id and existing.organization_id not in (None, body.organization_id):
+            raise AppError(
+                409,
+                "document_organization",
+                "Tệp này đã gắn với tổ chức khác. Hãy kiểm tra lại đơn vị nguồn.",
+            )
+        if body.organization_id and not existing.organization_id:
+            if existing.uploaded_by != user.id and user.role != "admin":
+                raise AppError(403, "document_owner", "Chỉ người tải lên được gắn tổ chức cho tài liệu.")
+            existing.organization_id = body.organization_id
+            db.commit()
         return public(existing)
     item = SourceDocument(**body.model_dump(), page_count=asset.page_count, uploaded_by=user.id)
     db.add(item)
@@ -132,6 +153,35 @@ def create_document(body: DocumentIn, user: User = Depends(editor), db: Session 
     audit(db, user, "document_create", "document", item.id)
     db.commit()
     return public(item)
+
+
+@router.patch("/assets/{ident}")
+def rename_asset(
+    ident: uuid.UUID, body: AssetNameIn, user: User = Depends(editor), db: Session = Depends(get_db)
+):
+    asset = authorized_asset(db, ident, user)
+    if asset.uploaded_by != user.id and user.role != "admin":
+        raise AppError(403, "asset_owner", "Chỉ người tải lên hoặc quản trị viên được đổi tên ảnh.")
+    asset.display_name = body.display_name
+    asset.source_metadata = {**asset.source_metadata, "display_name_custom": True}
+    audit(db, user, "asset_rename", "asset", asset.id)
+    db.commit()
+    return public(asset)
+
+
+@router.patch("/documents/{ident}/organization")
+def link_document(
+    ident: uuid.UUID, body: OrganizationLinkIn, user: User = Depends(editor), db: Session = Depends(get_db)
+):
+    doc = record(db, SourceDocument, ident)
+    if doc.uploaded_by != user.id and user.role != "admin":
+        raise AppError(403, "document_owner", "Chỉ người tải lên hoặc quản trị viên được cập nhật tài liệu.")
+    if body.organization_id:
+        record(db, Organization, body.organization_id)
+    doc.organization_id = body.organization_id
+    audit(db, user, "document_organization", "document", doc.id)
+    db.commit()
+    return public(doc)
 
 
 @router.get("/documents/{ident}")
@@ -146,4 +196,4 @@ def document_preview(
     ident: uuid.UUID, page: int, user: User = Depends(current_user), db: Session = Depends(get_db)
 ):
     doc = record(db, SourceDocument, ident)
-    return preview(doc.file_asset_id, page, False, user, db)
+    return preview(doc.file_asset_id, page, False, False, user, db)

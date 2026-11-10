@@ -18,6 +18,7 @@ export interface User extends Entity {
   is_active: boolean;
 }
 export interface Asset extends Entity {
+  display_name?: string | null;
   kind: string;
   original_filename: string;
   width: number;
@@ -29,6 +30,7 @@ export interface Asset extends Entity {
   source_metadata: { roi_confirmed?: boolean; whole_source_confirmed?: boolean };
 }
 export interface Document extends Entity {
+  organization_id?: string | null;
   file_asset_id: string;
   display_name: string;
   page_count: number;
@@ -100,6 +102,8 @@ export interface Parameters {
   apply_mask: boolean;
 }
 export interface Profile extends Entity {
+  organization_id?: string | null;
+  owner_user_id?: string | null;
   name: string;
   parameters: Parameters;
   is_default: boolean;

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Download, ExternalLink } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { ErrorBox } from '../../components/shared';
-import { dateTime, statusLabel, verdictLabel } from '../../lib/utils';
+import { dateTime, scoreBand, scoreLabel, statusLabel, verdictLabel } from '../../lib/utils';
 import type { Evidence, Result } from '../../types';
 
 export function DemoResults({
@@ -46,7 +46,7 @@ export function DemoResults({
         />
       ) : (
         <>
-          <div className="result-summary panel">
+          <div className={`result-summary panel score-${scoreBand(data.visual_similarity_score)}`}>
             <div className="score-circle">
               <strong>{data.visual_similarity_score ?? '—'}</strong>
               <span>/ 100</span>
@@ -54,6 +54,9 @@ export function DemoResults({
             <div>
               <p className="eyebrow">ĐIỂM TƯƠNG ĐỒNG DO AI ƯỚC LƯỢNG</p>
               <h2>{verdictLabel[data.verdict]}</h2>
+              <span className={`score-badge score-${scoreBand(data.visual_similarity_score)}`}>
+                {scoreLabel(data.visual_similarity_score)}
+              </span>
               <p>{data.summary_vi}</p>
               <small>
                 Mức tự tin thị giác: {statusLabel[data.visual_confidence_label]} · Chưa hiệu chuẩn

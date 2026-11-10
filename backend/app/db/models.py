@@ -72,6 +72,7 @@ class FileAsset(Identity, Base):
     # Deduplication only within one owner; identical bytes never grant another user access.
     kind: Mapped[str] = mapped_column(String(40), index=True)
     original_filename: Mapped[str] = mapped_column(String(250))
+    display_name: Mapped[str | None] = mapped_column(String(250))
     media_type: Mapped[str] = mapped_column(String(100))
     file_size: Mapped[int] = mapped_column(Integer)
     sha256: Mapped[str] = mapped_column(String(64), index=True)
@@ -86,6 +87,7 @@ class FileAsset(Identity, Base):
 class SourceDocument(Identity, Base):
     __tablename__ = "source_documents"
     file_asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("file_assets.id"), unique=True)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organizations.id"), index=True)
     display_name: Mapped[str] = mapped_column(Text)
     document_no: Mapped[str | None] = mapped_column(String(120))
     description: Mapped[str | None] = mapped_column(Text)
@@ -115,6 +117,7 @@ class SealImpression(Identity, Timestamps, Base):
 class PreprocessingProfile(Identity, Timestamps, Base):
     __tablename__ = "preprocessing_profiles"
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organizations.id"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     parameters: Mapped[dict] = mapped_column(JSONB)

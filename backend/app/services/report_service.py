@@ -18,6 +18,10 @@ def esc(value):
     return html.escape(str(value)[:30000], quote=True)
 
 
+def score_band(score):
+    return "gray" if score is None else "green" if score > 90 else "yellow" if score >= 70 else "red"
+
+
 def embedded_image(db, ident, user):
     asset = authorized_asset(db, ident, user)
     from app.services.pdf_render_service import load_page, png_bytes
@@ -85,18 +89,38 @@ def make_report(db, session, results, user):
         )
         sections.append(f"""<section><h2>Kết quả {index}: {esc(VERDICTS.get(result.verdict, result.verdict))}</h2>
         <p>Thời gian UTC: {esc(result.created_at)} · Mã kết quả: {esc(result.id)}</p>
-        {images}<p>Điểm tương đồng do AI ước lượng: <strong>{esc(result.visual_similarity_score if result.visual_similarity_score is not None else "Không chấm điểm")}</strong></p>
+        {images}<p>Điểm tương đồng do AI ước lượng: <strong class='score {score_band(result.visual_similarity_score)}'>{esc(str(result.visual_similarity_score) + "%" if result.visual_similarity_score is not None else "Không chấm điểm")}</strong></p>
         <p>{esc(data.get("summary_vi") or result.error_summary or "")}</p>{evidence}{observations}
         <p>Khuyến nghị: {esc(data.get("recommendation_vi", ""))}</p>{manual}
         <h3>Thông tin kỹ thuật và tiền xử lý</h3><p>Model: {esc(result.model_name)} · SDK: {esc(result.provider_version)} · Prompt: {esc(result.prompt_version)}</p>
         <p>Request ID: {esc(result.request_id_provider)} · Thời gian: {result.duration_ms} ms · Chi phí chưa xác định</p>
         <pre>{esc(json.dumps({"input": snapshot, "usage": result.token_usage}, ensure_ascii=False, indent=2))}</pre></section>""")
+    ranking = ""
+    if session.mode == "organization_search":
+        from app.services.library_search_service import search_state
+
+        state = search_state(db, session)
+        label = (
+            "Top tổ chức tương đồng"
+            if state["complete_scan"]
+            else "Xếp hạng tạm thời — chưa quét đủ thư viện"
+        )
+        ranking = (
+            f"<h2>{label}</h2><p>Đã xử lý {state['processed']}/{state['total']} cặp ảnh. {esc(state['aggregation'])}</p><ol>"
+            + "".join(
+                f"<li>{esc(row['name'])}: <strong class='score {score_band(row['score'])}'>{esc(row['score'])}%</strong></li>"
+                for row in state["rankings"]
+            )
+            + "</ol>"
+        )
     return f"""<!doctype html><html lang='vi'><head><meta charset='UTF-8'><title>Báo cáo phân tích con dấu</title>
     <style>body{{font:15px/1.6 'Segoe UI',sans-serif;color:#172b4d;max-width:1000px;margin:40px auto;padding:0 24px}}
     h1{{font-size:26px}}h2{{font-size:21px}}.notice{{background:#fff5d6;padding:16px;border:1px solid #dcc37d}}
+    .score{{padding:4px 8px;border-radius:4px}}.green{{background:#e5f6eb;color:#15713c}}.yellow{{background:#fff3cf;color:#876015}}.red{{background:#fde9eb;color:#b03849}}.gray{{background:#edf1f5;color:#62778d}}
     .images{{display:flex;gap:24px}}figure{{width:48%;margin:0;text-align:center}}img{{max-width:100%;max-height:350px;object-fit:contain}}
     pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f5f8;padding:12px;font-size:11px}}section{{border-top:1px solid #ddd;margin-top:32px;padding-top:16px}}
     @media print{{body{{margin:0;max-width:none}}.images,li{{break-inside:avoid}}@page{{size:A4;margin:16mm}}}}</style></head><body>
     <h1>HỆ THỐNG GIÁM ĐỊNH CON DẤU</h1><p>PHIẾU PHÂN TÍCH TƯƠNG ĐỒNG HÌNH ẢNH</p><h2>{esc(session.title)}</h2>
     <p>Mã phiên: {esc(session.id)} · Tạo lúc UTC: {esc(session.created_at)}</p><p class='notice'>{esc(DISCLAIMER)}</p>
+    <p>Màu hiển thị: trên 90% xanh; 70–90% vàng; dưới 70% đỏ; không đủ dữ liệu màu xám.</p>{ranking}
     {"".join(sections) or "<p>Phiên chưa có kết quả phân tích.</p>"}</body></html>"""

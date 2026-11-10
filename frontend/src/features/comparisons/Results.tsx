@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeftRight, Download, ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post, previewUrl } from '../../lib/api';
-import { dateTime, statusLabel, verdictLabel } from '../../lib/utils';
+import { dateTime, scoreBand, scoreLabel, statusLabel, verdictLabel } from '../../lib/utils';
 import type { Analysis, Annotation, Asset, Evidence, Result, ROI } from '../../types';
 import { Disclaimer, Empty, ErrorBox, Loading, PageHeader } from '../../components/shared';
 import { Button } from '../../components/ui/button';
@@ -13,7 +13,8 @@ import { useAuth } from '../auth/Auth';
 
 export function Results() {
   const { sessionId } = useParams();
-  const [selected, setSelected] = useState('');
+  const [search] = useSearchParams();
+  const [selected, setSelected] = useState(search.get('result') || '');
   const [tab, setTab] = useState('summary');
   const [swap, setSwap] = useState(false);
   const [sync, setSync] = useState(true);
@@ -67,7 +68,12 @@ export function Results() {
             Xuất HTML
           </a>
         </Button>
-        {q && k && (
+        {session.data.mode === 'organization_search' && (
+          <Button asChild>
+            <Link to={`/compare/library?session=${sessionId}`}>Top 3 & tiến độ tra cứu</Link>
+          </Button>
+        )}
+        {q && k && session.data.mode !== 'organization_search' && (
           <Button asChild>
             <Link to={`/compare/new?session=${sessionId}&q=${q}&k=${k}`}>
               <RotateCcw size={16} />
@@ -112,7 +118,7 @@ export function Results() {
               error={new Error(result.error_summary || 'Không phân tích được ảnh. Không có điểm tương đồng.')}
             />
           ) : (
-            <div className="result-summary panel">
+            <div className={`result-summary panel score-${scoreBand(data?.visual_similarity_score)}`}>
               <div className="score-circle">
                 <strong>{data?.visual_similarity_score ?? '—'}</strong>
                 <span>/ 100</span>
@@ -120,6 +126,9 @@ export function Results() {
               <div>
                 <p className="eyebrow">ĐIỂM TƯƠNG ĐỒNG DO AI ƯỚC LƯỢNG</p>
                 <h2>{verdictLabel[result.verdict]}</h2>
+                <span className={`score-badge score-${scoreBand(data?.visual_similarity_score)}`}>
+                  {scoreLabel(data?.visual_similarity_score)}
+                </span>
                 <p>{data?.summary_vi}</p>
                 <small>
                   Mức tự tin thị giác: {statusLabel[data?.visual_confidence_label || 'low']} · Chưa hiệu chuẩn

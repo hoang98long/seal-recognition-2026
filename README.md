@@ -77,6 +77,10 @@ Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và co
 
 ## Quy trình sử dụng
 
+**Luồng theo tổ chức:** mở **Tổ chức & thư viện dấu** tại `/organizations` → chọn/tạo đơn vị → tải nhiều tài liệu, khoanh và lưu dấu → mở **Tra cứu Top 3 tổ chức** tại `/compare/library` để so Q với toàn bộ ảnh tham chiếu hợp lệ qua OpenAI API. Điểm tổ chức lấy mức cao nhất trong các mẫu đã so; màu xanh >90%, vàng 70–90%, đỏ <70%. Xem [hướng dẫn đầy đủ và đồng bộ CSDL local](docs/organization_workflow.md).
+
+PDF đã hỗ trợ lớp chú thích/biểu mẫu chứa dấu điện tử; có thể kéo chuột vẽ vùng ngay cả khi chưa bấm gợi ý. Ảnh đã xử lý có tên theo nguồn/trang/đơn vị và được đổi tên. Preview K xuất hiện ngay tại bước chọn K. Cấu hình xử lý được quản lý theo tổ chức.
+
 **So khớp văn bản & ảnh dấu:** vào mục **Văn bản & ảnh dấu** tại `/compare/document-stamp`. Tải văn bản, tải ảnh dấu hoặc chọn dấu đã lưu theo tổ chức, kiểm tra vùng dấu được gợi ý rồi xác nhận gửi OpenAI. Kết quả và báo cáo hiện ngay trong cùng luồng. Đường dẫn `/demo/document-stamp` cũ tự chuyển sang trang mới. Xem [hướng dẫn so khớp](docs/demo_document_stamp.md).
 
 **Nhập con dấu tổ chức:** chọn **Thêm con dấu tổ chức** tại Tổng quan, Thư viện hoặc ngay trên dòng tổ chức. Trang `/seal-library/add` cho phép chọn/tạo tổ chức, tải ảnh/PDF, xác nhận vùng dấu và lưu mẫu cùng ảnh trong một lần. Sau khi lưu, có thể so khớp ngay hoặc thêm ảnh khác cho cùng mẫu. Không cần tạo dụng cụ đóng dấu.

@@ -75,7 +75,7 @@ def test_sdk_structured_result_persist_rerun_report_and_annotations(
     assert response.status_code == 200, response.text
     results = client.get(f"/api/v1/analyses/{ident}/results").json()
     assert results[0]["visual_similarity_score"] == 83.5
-    assert results[0]["prompt_version"] == "seal-compare-vi-v1"
+    assert results[0]["prompt_version"] == "seal-only-vi-v2"
     assert results[0]["is_uncalibrated"]
     assert results[0]["token_usage"]["total_tokens"] == 32
     assert results[0]["input_metadata"]["query"]["preprocessing"]["parameters"]["gamma"] == 1
@@ -86,6 +86,7 @@ def test_sdk_structured_result_persist_rerun_report_and_annotations(
     images = [p for p in calls[0]["input"][1]["content"] if p["type"] == "input_image"]
     assert len(images) == 2
     assert all(x["image_url"].startswith("data:image/png;base64,") for x in images)
+    assert all(x["detail"] == "high" for x in images)
     annotation = client.post(
         f"/api/v1/analysis-results/{results[0]['id']}/annotations",
         json={
@@ -106,7 +107,7 @@ def test_sdk_structured_result_persist_rerun_report_and_annotations(
     assert report.status_code == 200
     assert "text/html" in report.headers["content-type"]
     assert "attachment" in report.headers["content-disposition"]
-    assert "seal-compare-vi-v1" in report.text
+    assert "seal-only-vi-v2" in report.text
     assert "data:image/png;base64," in report.text
 
 
