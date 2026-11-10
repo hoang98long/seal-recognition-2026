@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.exceptions import AppError
-from app.db.models import FileAsset, SealImpression
+from app.db.models import AnalysisCandidate, AnalysisSession, FileAsset, SealImpression
 from app.db.repositories import record
 
 
@@ -31,7 +31,21 @@ def authorized_asset(db, ident, user):
         )
     )
     if asset.uploaded_by != user.id and user.role != "admin" and not shared:
-        raise AppError(403, "private_file", "Bạn không có quyền truy cập tệp riêng của người khác.")
+        # Removing/replacing a library reference must not hide images already
+        # selected for this user's analysis. This grants no access to other users.
+        own_query = db.scalar(
+            select(AnalysisSession.id)
+            .where(AnalysisSession.created_by == user.id, AnalysisSession.query_asset_id == asset.id)
+            .limit(1)
+        )
+        own_reference = db.scalar(
+            select(AnalysisCandidate.id)
+            .join(AnalysisSession, AnalysisSession.id == AnalysisCandidate.analysis_session_id)
+            .where(AnalysisSession.created_by == user.id, AnalysisCandidate.reference_asset_id == asset.id)
+            .limit(1)
+        )
+        if not own_query and not own_reference:
+            raise AppError(403, "private_file", "Bạn không có quyền truy cập tệp riêng của người khác.")
     return asset
 
 

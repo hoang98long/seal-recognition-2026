@@ -26,6 +26,16 @@ Nếu đã xử lý ảnh trước đây, chọn **Hoặc chọn ảnh đã xử
 
 Nếu bản cắt cũ từng thiếu dấu do PDF chưa render biểu mẫu/chú thích, hãy cắt và lưu phiên bản mới từ PDF gốc. Bản sửa không tự ghi đè các ảnh đã lưu trước đây.
 
+### Chỉnh sửa, thay ảnh và xóa con dấu
+
+Trong hồ sơ tổ chức, mỗi thẻ dấu có **Chỉnh sửa** và **Xóa**. Các nút này cũng có trong thư viện chung; chỉ tài khoản có quyền chỉnh sửa được sử dụng.
+
+- **Chỉnh sửa:** đổi tên mẫu và ghi chú rồi bấm **Lưu thay đổi**. Tên mẫu dùng chung cho các ảnh thuộc mẫu đó; ghi chú áp dụng riêng cho ảnh đang chọn.
+- **Thay ảnh con dấu:** tải PDF/ảnh mới hoặc chọn ảnh đã xử lý. Khoanh vùng, bấm **Xác nhận vùng dấu K**, kiểm tra ảnh hiện tại/ảnh thay thế rồi **Lưu thay đổi**. Tài liệu và trang nguồn mới tự liên kết với tổ chức. Ảnh mới về trạng thái **Chỉ tham chiếu** để kiểm tra lại; nhãn xác thực của ảnh cũ không được chuyển sang ảnh mới. **Giữ ảnh hiện tại** hoặc **Hủy** bỏ thay đổi chưa lưu trên con dấu.
+- **Xóa:** cần xác nhận trước khi gỡ ảnh khỏi thư viện và các lượt tra cứu mới. Ảnh gốc, tệp đã xử lý và kết quả đối chiếu trước đó vẫn được giữ lại; người có phiên đối chiếu vẫn xem được ảnh đã dùng trong phiên của mình.
+
+Chỉnh sửa/xóa không gửi ảnh tới OpenAI và không phát sinh lượt phân tích. Các phiên đã tạo tiếp tục dùng ảnh đã chọn lúc tạo; muốn đối chiếu với ảnh thay thế, chọn lại dấu trong thư viện hoặc tạo phiên mới. Thay đổi này sử dụng cấu trúc CSDL hiện có, không cần chạy migration hoặc script đồng bộ.
+
 ## 3. Tra cứu toàn thư viện và Top 3 tổ chức
 
 1. Mở `/compare/library`, tải PDF/ảnh bất kỳ và chuẩn bị Q. Hoặc từ xưởng/ảnh đã chuẩn bị bấm **Tra cứu Top 3**.

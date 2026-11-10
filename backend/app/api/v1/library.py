@@ -11,6 +11,7 @@ from app.db.models import (
     AnalysisCandidate,
     AnalysisResult,
     Organization,
+    PreprocessingRun,
     SealDesign,
     SealDevice,
     SealImpression,
@@ -19,7 +20,14 @@ from app.db.models import (
 )
 from app.db.repositories import audit, page_query, public, record
 from app.db.session import get_db
-from app.schemas.common import DesignIn, DeviceIn, ImpressionIn, OrganizationIn, ReferenceIntakeIn
+from app.schemas.common import (
+    DesignIn,
+    DeviceIn,
+    ImpressionIn,
+    OrganizationIn,
+    ReferenceIntakeIn,
+    ReferenceUpdateIn,
+)
 from app.services.storage_service import authorized_asset
 
 router = APIRouter(tags=["Thư viện"])
@@ -104,6 +112,77 @@ def validate_references(db, model, values, user):
             if values.get("source_page") and values["source_page"] > doc.page_count:
                 raise AppError(422, "source_page", "Trang nguồn không hợp lệ.")
         values["organization_id"] = design.organization_id
+
+
+@router.patch("/reference-intake/{ident}")
+def update_reference(
+    ident: uuid.UUID,
+    body: ReferenceUpdateIn,
+    user: User = Depends(editor),
+    db: Session = Depends(get_db),
+):
+    """Update one library image and its design name atomically; assets stay immutable."""
+    item = db.scalar(select(SealImpression).where(SealImpression.id == ident).with_for_update())
+    if not item or item.status == "deleted":
+        raise AppError(404, "not_found", "Không tìm thấy con dấu.")
+    if not item.is_reference and item.created_by != user.id and user.role != "admin":
+        raise AppError(403, "private_impression", "Ảnh dấu này là dữ liệu riêng.")
+    design = record(db, SealDesign, item.seal_design_id)
+    organization = record(db, Organization, design.organization_id)
+    values = {key: getattr(item, key) for key in ImpressionIn.model_fields}
+    values["note"] = body.note
+    old_asset_id = item.image_asset_id
+    replacing = body.image_asset_id is not None and body.image_asset_id != old_asset_id
+    if replacing:
+        asset = authorized_asset(db, body.image_asset_id, user)
+        run = db.scalar(select(PreprocessingRun).where(PreprocessingRun.output_asset_id == asset.id))
+        if asset.kind != "processed_stamp" or not asset.source_metadata.get("roi_confirmed") or not run:
+            raise AppError(422, "reference_roi", "Hãy khoanh vùng, xác nhận và lưu ảnh con dấu mới trước.")
+        source = authorized_asset(db, run.source_asset_id, user)
+        document = db.scalar(select(SourceDocument).where(SourceDocument.file_asset_id == source.id))
+        if document:
+            if document.organization_id not in (None, organization.id):
+                raise AppError(422, "document_organization", "Tài liệu ảnh mới thuộc một tổ chức khác.")
+            if document.organization_id is None:
+                if document.uploaded_by != user.id and user.role != "admin":
+                    raise AppError(403, "document_owner", "Chỉ người tải lên được gắn tổ chức cho tài liệu.")
+                document.organization_id = organization.id
+        else:
+            document = SourceDocument(
+                file_asset_id=source.id,
+                organization_id=organization.id,
+                display_name=source.original_filename,
+                page_count=source.page_count,
+                uploaded_by=user.id,
+            )
+            db.add(document)
+            db.flush()
+            audit(db, user, "document_create", "document", document.id)
+        values.update(
+            image_asset_id=asset.id,
+            source_document_id=document.id,
+            source_page=run.source_page,
+            capture_method="uploaded",
+            verification_status="reference_only",
+            observed_color=None,
+            image_quality_note=None,
+        )
+        validate_references(db, SealImpression, values, user)
+    if design.name != body.name:
+        design.name = body.name
+        audit(db, user, "update", "seal-designs", design.id)
+    for key, value in values.items():
+        setattr(item, key, value)
+    audit(
+        db,
+        user,
+        "replace_image" if replacing else "update",
+        "seal-impressions",
+        item.id,
+        {"previous_asset_id": str(old_asset_id), "image_asset_id": str(item.image_asset_id)},
+    )
+    db.commit()
+    return {**public(item), "design_name": design.name, "organization_name": organization.name}
 
 
 def register_crud(path, model, schema, search_fields):

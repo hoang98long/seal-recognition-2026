@@ -81,3 +81,11 @@ Tác vụ thủ công tiếp theo: mở hai terminal, kích hoạt .venv rồi c
 - Tách thông báo thiếu quyền 403 và không tìm thấy model 404, giữ mã lỗi API tương thích và không trả chi tiết upstream/khóa ra trình duyệt. Không tự chuyển model khi phân tích lỗi.
 - **64 pytest đạt (21,03 giây)**, gồm kiểm tra GET thông tin model không sinh nội dung, lỗi 401/403/404, không lộ key/chi tiết upstream và quyền admin. TypeScript/Vite build, Ruff và `git diff --check` đạt. Các cảnh báo dependency đã ghi phía trên vẫn tồn tại; kiểm thử tự động dùng HTTP mock và schema riêng.
 - Sau đổi `.env`, dừng/chạy lại backend để bỏ cấu hình cache. Kết quả lỗi lịch sử giữ nguyên; chạy so khớp lại sau khi xác nhận chia sẻ ảnh để lưu kết quả mới.
+
+## Quản lý con dấu ngay trong hồ sơ tổ chức — 10/11/2026
+
+- Thêm Chỉnh sửa/Xóa trên từng thẻ dấu của hồ sơ tổ chức, dùng cùng thành phần với lưới/bảng thư viện chung. Sửa tên mẫu, ghi chú, tải PDF/ảnh thay thế hoặc dùng ảnh đã xử lý; khoanh vùng, xác nhận và xem ảnh cũ/mới trước khi lưu. Hủy không đổi bản ghi thư viện; xóa cần xác nhận và loại dấu khỏi tra cứu mới.
+- `PATCH /reference-intake/{id}` lưu tên mẫu, ghi chú, ảnh và nguồn trong cùng giao dịch. Kiểm tra quyền, ROI/run xử lý, tổ chức của nguồn; thay ảnh đưa trạng thái về `reference_only` và bỏ mô tả màu/chất lượng cũ. Byte ảnh, candidate và snapshot kết quả trước đó không bị ghi đè. Xóa dùng trạng thái `deleted` hiện có; không xóa tệp vật lý.
+- Quyền tệp cho phép chủ phiên xem ảnh đã dùng trong phiên của mình sau khi mẫu bị thay/xóa. Người khác không được truy cập ảnh đã ngừng chia sẻ chỉ vì biết ID. Tài khoản chỉ xem không có nút và API từ chối chỉnh sửa/xóa; dấu riêng vẫn được bảo vệ.
+- **69 pytest đạt (28,16 giây)**, gồm đổi tên/ghi chú, thay ảnh/reset xác thực, nguồn khác tổ chức, rollback cả tài liệu mới khi lỗi, quyền người dùng, xóa khỏi corpus và bảo toàn kết quả/báo cáo/ảnh lịch sử. **7 Playwright đạt (1 phút)**, có luồng mới kiểm tra sửa tên → upload/cắt ảnh → preview → lưu → hủy → xóa → xem kết quả cũ. TypeScript/Vite build và Ruff đạt.
+- Đã xem ảnh giao diện sửa dấu ở desktop 1366px và điện thoại 390px; kiểm tra dialog và trang không tràn ngang. Kiểm thử dùng schema/tệp riêng và OpenAI giả lập; không gọi API thật, không sửa `.env` hay các con dấu của CSDL ứng dụng. Không cần migration mới.

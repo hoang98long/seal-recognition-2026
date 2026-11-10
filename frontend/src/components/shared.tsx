@@ -66,10 +66,12 @@ export function Modal({
   title,
   onClose,
   children,
+  className = '',
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const heading = useRef(`dialog-${Math.random().toString(36).slice(2)}`);
   return (
@@ -80,7 +82,7 @@ export function Modal({
       }}
     >
       <div
-        className="modal"
+        className={`modal ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={heading.current}
@@ -103,17 +105,25 @@ export function Confirm({
   title,
   onConfirm,
   onClose,
+  dialogTitle = 'Xác nhận lưu trữ',
+  description,
+  actionLabel = 'Lưu trữ',
+  successMessage = 'Đã lưu trữ dữ liệu.',
 }: {
   title: string;
   onConfirm: () => Promise<unknown>;
   onClose: () => void;
+  dialogTitle?: string;
+  description?: string;
+  actionLabel?: string;
+  successMessage?: string;
 }) {
   const [busy, setBusy] = useState(false);
   return (
-    <Modal title="Xác nhận lưu trữ" onClose={onClose}>
-      <p>Lưu trữ “{title}”? Dữ liệu liên kết và lịch sử vẫn được giữ lại.</p>
+    <Modal title={dialogTitle} onClose={() => !busy && onClose()}>
+      <p>{description || `Lưu trữ “${title}”? Dữ liệu liên kết và lịch sử vẫn được giữ lại.`}</p>
       <div className="form-actions">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" disabled={busy} onClick={onClose}>
           Hủy
         </Button>
         <Button
@@ -124,7 +134,7 @@ export function Confirm({
             try {
               await onConfirm();
               onClose();
-              toast.success('Đã lưu trữ dữ liệu.');
+              toast.success(successMessage);
             } catch (e) {
               toast.error((e as Error).message);
             } finally {
@@ -132,7 +142,7 @@ export function Confirm({
             }
           }}
         >
-          Lưu trữ
+          {actionLabel}
         </Button>
       </div>
     </Modal>

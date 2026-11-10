@@ -1396,6 +1396,59 @@ td a:hover {
   border-top: 1px solid var(--border);
   padding-top: 11px;
 }
+.reference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.reference-delete {
+  color: #c64b55;
+}
+.reference-edit-modal {
+  width: 1060px;
+}
+.reference-name-hint {
+  font-size: 0.875rem;
+  margin: -4px 0 16px;
+}
+.reference-preview {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+.reference-preview.is-replacing {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.reference-preview figure {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--subtle);
+  text-align: center;
+}
+.reference-preview figcaption {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.reference-preview img {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+}
+.reference-replacement {
+  margin-top: 20px;
+}
+.reference-replacement > * + * {
+  margin-top: 16px;
+}
+@media (max-width: 600px) {
+  .reference-preview.is-replacing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .detail-stamp {
   max-height: 350px;
   max-width: 100%;

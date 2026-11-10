@@ -114,6 +114,12 @@ class DocumentIn(StrictModel):
     tags: list[str] = Field(default_factory=list, max_length=30)
 
 
+class ReferenceUpdateIn(StrictModel):
+    name: str = Field(min_length=1, max_length=500)
+    note: str | None = Field(default=None, max_length=5000)
+    image_asset_id: uuid.UUID | None = None
+
+
 class ROI(StrictModel):
     x: int = Field(ge=0)
     y: int = Field(ge=0)

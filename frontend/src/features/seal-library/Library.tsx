@@ -18,6 +18,7 @@ import {
 } from '../../components/shared';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../auth/Auth';
+import { ReferenceActions } from './ReferenceActions';
 
 type Tab = 'seal-impressions' | 'seal-designs' | 'seal-devices';
 export function Library() {
@@ -264,26 +265,7 @@ export function Library() {
                   >
                     Xem chi tiết
                   </button>
-                  {editable && (
-                    <div className="row-actions">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Sửa ảnh dấu"
-                        onClick={() => setEditing(i)}
-                      >
-                        <Pencil size={15} />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label="Lưu trữ ảnh dấu"
-                        onClick={() => setDeleting(i)}
-                      >
-                        <Trash2 size={15} />
-                      </Button>
-                    </div>
-                  )}
+                  {editable && <ReferenceActions impression={i} onChanged={() => setDetail(null)} />}
                 </div>
               </div>
             </article>
@@ -346,7 +328,10 @@ export function Library() {
                           Xem ảnh
                         </Button>
                       )}
-                      {editable && (
+                      {editable && tab === 'seal-impressions' && (
+                        <ReferenceActions impression={item as Impression} onChanged={() => setDetail(null)} />
+                      )}
+                      {editable && tab !== 'seal-impressions' && (
                         <>
                           <Button
                             size="icon"

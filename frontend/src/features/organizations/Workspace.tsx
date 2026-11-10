@@ -9,6 +9,7 @@ import type { Document, Impression, Organization, Page, Profile } from '../../ty
 import { Button } from '../../components/ui/button';
 import { Empty, ErrorBox, Loading, PageHeader, Pagination, UploadBox } from '../../components/shared';
 import { useAuth } from '../auth/Auth';
+import { ReferenceActions } from '../seal-library/ReferenceActions';
 
 export function OrganizationWorkspace() {
   const { organizationId } = useParams();
@@ -120,6 +121,7 @@ export function OrganizationWorkspace() {
                           <Link to={`/compare/library?q=${i.image_asset_id}`}>Tra cứu thư viện</Link>
                         </Button>
                       </div>
+                      {editable && <ReferenceActions impression={i} onChanged={() => setPage(1)} />}
                     </div>
                   </article>
                 ))}
