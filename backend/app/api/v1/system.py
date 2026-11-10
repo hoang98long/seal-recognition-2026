@@ -7,7 +7,6 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.exceptions import AppError
 from app.core.security import admin, current_user, limiter
 from app.db.models import (
     AnalysisSession,
@@ -103,16 +102,12 @@ async def test_openai(user: User = Depends(admin), db: Session = Depends(get_db)
     async with configured_client() as client:
         try:
             async with asyncio.timeout(get_settings().openai_request_timeout_seconds):
-                response = await client.responses.create(
-                    model=get_settings().openai_model, input="Reply OK.", max_output_tokens=16, store=False
-                )
-            if response.status != "completed":
-                raise AppError(502, "test_incomplete", "OpenAI chưa hoàn tất phản hồi kiểm tra.")
+                response = await client.models.retrieve(get_settings().openai_model)
             return {
-                "message": "Kết nối OpenAI thành công (kiểm tra văn bản tối thiểu; chưa kiểm tra cặp ảnh).",
-                "model": response.model,
+                "message": "Key và ID model đã được OpenAI xác nhận. Kiểm tra này không sinh nội dung; chưa kiểm tra so khớp ảnh hoặc hạn mức sử dụng.",
+                "model": response.id,
                 "request_id": getattr(response, "_request_id", None),
-                "usage": response.usage.model_dump() if response.usage else None,
+                "usage": None,
             }
         except (openai.APIError, TimeoutError) as exc:
             raise provider_error(exc) from None

@@ -72,3 +72,12 @@ Tác vụ thủ công tiếp theo: mở hai terminal, kích hoạt .venv rồi c
 - **59 pytest đạt (20.54s)**; **6 Playwright đạt (54.5s)**; TypeScript/Vite build đạt, các chunk <500 kB; Ruff và `git diff --check` đạt. Đã xem ảnh Top 3 desktop 1366px và điện thoại 390px, kiểm tra không tràn ngang. Các cảnh báo dependency đã ghi ở phần trước vẫn không làm hỏng kiểm tra.
 - Test dùng schema và bộ ảnh riêng, SDK OpenAI HTTP mock; không dùng key thật và không gọi API trả phí. Sau hoàn tất còn 0 schema E2E; server kiểm thử đã được dừng. Model/key trong `.env` local được giữ nguyên; test tự pin model để không phụ thuộc cấu hình cá nhân.
 - Hướng dẫn và đề xuất tiếp theo: [Luồng tổ chức và Top 3](organization_workflow.md).
+
+## Sửa cấu hình model với key hiện tại — 10/11/2026
+
+- Key local xác thực thành công với OpenAI. ID `gpt-6.1` đang cấu hình không nằm trong danh sách model key được truy cập; đã đổi riêng `OPENAI_MODEL` thành `gpt-6.1-sol`. Kiểm tra tự động xác nhận key và tất cả giá trị cấu hình khác giữ nguyên. `.env` vẫn được Git bỏ qua.
+- API thông tin model xác nhận `gpt-6.1-sol`. Chạy trực tiếp provider của ứng dụng với hai ảnh vòng tròn tự tạo đã hoàn tất Vision và parse/validate `SealVisualComparison`: 3.901 input token, 869 output token. Đây là yêu cầu API thật có tính phí, không gửi ảnh/tài liệu người dùng, không tạo bản ghi kết quả trong CSDL ứng dụng. Không dùng phép thử này để đánh giá độ chính xác giám định.
+- Nút Kiểm tra kết nối dùng `models.retrieve`, thay yêu cầu sinh văn bản giới hạn 16 token có thể báo chưa hoàn tất trên reasoning model. Thông báo nêu rõ chỉ xác nhận key/ID model, chưa kiểm tra ảnh hoặc hạn mức; mở trang Cài đặt không tự gọi OpenAI.
+- Tách thông báo thiếu quyền 403 và không tìm thấy model 404, giữ mã lỗi API tương thích và không trả chi tiết upstream/khóa ra trình duyệt. Không tự chuyển model khi phân tích lỗi.
+- **64 pytest đạt (21,03 giây)**, gồm kiểm tra GET thông tin model không sinh nội dung, lỗi 401/403/404, không lộ key/chi tiết upstream và quyền admin. TypeScript/Vite build, Ruff và `git diff --check` đạt. Các cảnh báo dependency đã ghi phía trên vẫn tồn tại; kiểm thử tự động dùng HTTP mock và schema riêng.
+- Sau đổi `.env`, dừng/chạy lại backend để bỏ cấu hình cache. Kết quả lỗi lịch sử giữ nguyên; chạy so khớp lại sau khi xác nhận chia sẻ ảnh để lưu kết quả mới.

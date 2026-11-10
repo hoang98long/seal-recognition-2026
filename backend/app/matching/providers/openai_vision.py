@@ -19,9 +19,20 @@ def provider_error(exc):
         return AppError(
             502, "invalid_api_key", "OpenAI từ chối khóa API. Kiểm tra OPENAI_API_KEY trong backend/.env."
         )
-    if isinstance(exc, (openai.PermissionDeniedError, openai.NotFoundError)):
+    if isinstance(exc, openai.NotFoundError):
         return AppError(
-            502, "model_access", "Không có quyền dùng model hoặc model không tồn tại. Kiểm tra OPENAI_MODEL."
+            502,
+            "model_access",
+            "OpenAI không tìm thấy model đang cấu hình hoặc key chưa được cấp quyền dùng model này. "
+            "Kiểm tra ID chính xác của OPENAI_MODEL trong backend/.env rồi khởi động lại backend. "
+            "Xem model đang sử dụng tại Cài đặt → Kết nối OpenAI.",
+        )
+    if isinstance(exc, openai.PermissionDeniedError):
+        return AppError(
+            502,
+            "model_access",
+            "OpenAI từ chối quyền truy cập. Kiểm tra quyền của key/project đối với model và API đang dùng; "
+            "key còn Active vẫn có thể thiếu quyền. Kiểm tra OPENAI_MODEL trong backend/.env.",
         )
     if isinstance(exc, (openai.APITimeoutError, TimeoutError)):
         return AppError(

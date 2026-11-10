@@ -129,8 +129,8 @@ export function Settings() {
                     <CircleHelp size={18} />
                     <span>
                       Điền OPENAI_API_KEY trong backend/.env rồi khởi động lại backend. Việc mở trang này
-                      không gọi OpenAI. Kiểm tra dưới đây dùng một yêu cầu văn bản ngắn, có thể phát sinh phí
-                      API.
+                      không gọi OpenAI. Nút kiểm tra chỉ xác nhận key và ID model, không gửi ảnh và không
+                      sinh nội dung. Khi so khớp ảnh, yêu cầu phân tích vẫn tính phí API.
                     </span>
                   </div>
                   {user?.role === 'admin' && (

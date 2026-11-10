@@ -29,7 +29,7 @@ Nếu PowerShell báo `Activate.ps1` hoặc `npm.ps1` bị chặn, chạy `Set-E
 
 Muốn trở về cổng chuẩn khi đã trống: đổi lệnh uvicorn thành `--port 8000`, đặt API_PORT=8000 và FRONTEND_ORIGIN=http://localhost:5173 trong backend/.env, đồng thời SEAL_API_TARGET=http://127.0.0.1:8000 và SEAL_FRONTEND_PORT=5173 trong frontend/.env.local. Uvicorn CLI dùng `--port`, không tự đọc biến API_PORT của ứng dụng. File mẫu giữ các cổng mặc định 8000/5173.
 
-Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, kiểm tra `OPENAI_MODEL=gpt-4.1` rồi khởi động lại backend. Cài đặt → Kết nối OpenAI → Kiểm tra kết nối dùng một yêu cầu văn bản ngắn, có thể phát sinh phí; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision. **Chưa xác nhận với API thật khi chưa có khóa hợp lệ.** Không tự thay thế bằng kết quả giả.
+Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, đặt `OPENAI_MODEL` đúng ID model mà key được phép dùng rồi khởi động lại backend. Cấu hình mẫu dùng `gpt-4.1`; cấu hình local đã kiểm tra ngày 10/11/2026 dùng `gpt-6.1-sol` (ID `gpt-6.1` không hợp lệ với key hiện tại). Cài đặt → Kết nối OpenAI → Kiểm tra kết nối xác thực key và ID model bằng API thông tin model, không sinh nội dung. Kiểm tra này chưa xác nhận khả năng xử lý ảnh hoặc hạn mức; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision, có tính phí API. Đã kiểm tra thành công luồng Vision + Structured Outputs thật bằng hai ảnh tự tạo, không gửi tài liệu người dùng. Không tự thay thế bằng kết quả giả.
 
 ## Thiết lập từ đầu trên Windows
 
