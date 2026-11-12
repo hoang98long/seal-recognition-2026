@@ -10,7 +10,6 @@ import { Button } from '../../components/ui/button';
 export function History() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
-  const [model, setModel] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [author, setAuthor] = useState('');
@@ -19,7 +18,6 @@ export function History() {
   const filters = new URLSearchParams({
     q,
     status,
-    model,
     design_code: code,
     page: String(page),
     page_size: '20',
@@ -65,15 +63,6 @@ export function History() {
             </option>
           ))}
         </select>
-        <input
-          className="filter-input"
-          placeholder="Model"
-          value={model}
-          onChange={(e) => {
-            setModel(e.target.value);
-            setPage(1);
-          }}
-        />
       </div>
       <details className="filter-details">
         <summary>Bộ lọc bổ sung</summary>
@@ -188,7 +177,7 @@ export function Reports() {
       <PageHeader
         eyebrow="TỔNG HỢP HỒ SƠ"
         title="Báo cáo phân tích"
-        description="Báo cáo HTML lưu đầy đủ ảnh Q/K, model, thông số xử lý và các lần so sánh. Dùng In → Lưu PDF trong trình duyệt."
+        description="Báo cáo HTML gồm ảnh Q/K, điểm tương đồng, mức đánh giá và thời gian xử lý. Dùng In → Lưu PDF trong trình duyệt."
       />
       {query.isPending ? (
         <Loading />

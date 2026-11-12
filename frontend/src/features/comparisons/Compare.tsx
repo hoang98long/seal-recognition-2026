@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ExternalLink, LoaderCircle, ScanLine } from 'lucide-react';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { api, post, previewUrl } from '../../lib/api';
 import { assetLabel, dateTime } from '../../lib/utils';
 import type { Analysis, Asset, Candidate, Impression, OpenAIStatus, Page } from '../../types';
-import { Disclaimer, Empty, ErrorBox, Loading, PageHeader, UploadBox } from '../../components/shared';
+import { Empty, ErrorBox, Loading, PageHeader, UploadBox } from '../../components/shared';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../auth/Auth';
 
@@ -23,8 +23,8 @@ export function Compare() {
   );
   const [mode, setMode] = useState<'pairwise' | 'library'>('pairwise');
   const [title, setTitle] = useState('Phiên đối chiếu con dấu');
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [error, setError] = useState('');
   const [libraryQ, setLibraryQ] = useState('');
   const [libraryOrg, setLibraryOrg] = useState('');
@@ -62,13 +62,7 @@ export function Compare() {
     enabled: !!k,
   });
   const max = status.data?.max_candidates || 5;
-  const steps = [
-    'Ảnh cần kiểm tra Q',
-    'Chọn ảnh đối chiếu K',
-    'Kiểm tra tiền xử lý',
-    'Cho phép gửi OpenAI',
-    'Phân tích',
-  ];
+  const steps = ['Ảnh cần kiểm tra Q', 'Chọn ảnh đối chiếu K', 'Kiểm tra tiền xử lý', 'So khớp'];
   function toggleCandidate(i: Impression, checked: boolean) {
     if (checked) {
       if (candidates.length >= max) {
@@ -80,6 +74,16 @@ export function Compare() {
     setSessionId(search.get('session') || '');
   }
   async function analyse() {
+    if (
+      submitting.current ||
+      !q ||
+      !candidates.length ||
+      !title.trim() ||
+      !status.data?.is_configured ||
+      user?.role === 'viewer'
+    )
+      return;
+    submitting.current = true;
     setBusy(true);
     setError('');
     try {
@@ -89,7 +93,7 @@ export function Compare() {
         id = session.id;
         setSessionId(id);
       }
-      await post(`/analyses/${id}/compare-openai`, { consent, query_asset_id: q, candidates });
+      await post(`/analyses/${id}/compare-openai`, { consent: true, query_asset_id: q, candidates });
       await qc.invalidateQueries({ queryKey: ['history'] });
       await qc.invalidateQueries({ queryKey: ['dashboard'] });
       nav(`/compare/${id}/results`);
@@ -97,6 +101,7 @@ export function Compare() {
       setError((e as Error).message);
       toast.error((e as Error).message);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -105,7 +110,7 @@ export function Compare() {
       <PageHeader
         eyebrow="SO KHỚP HÌNH ẢNH"
         title={search.get('session') ? 'So sánh lại · phiên bản mới' : 'Tạo phiên đối chiếu'}
-        description="Chuẩn bị hai ảnh con dấu đã cắt. Kiểm tra nội dung chia sẻ trước khi phân tích."
+        description="Chuẩn bị hai ảnh con dấu đã cắt. Kiểm tra vùng dấu và bắt đầu so khớp."
       />
       <div className="stepper">
         {steps.map((label, i) => (
@@ -269,7 +274,7 @@ export function Compare() {
                 <Check size={18} />
                 <span>
                   Chỉ ảnh đã lưu với ROI xác nhận mới được backend chấp nhận. Tinh chỉnh sẽ tạo ảnh mới; hãy
-                  chọn lại phiên bản Q/K trước khi gửi.
+                  chọn lại phiên bản Q/K trước khi so khớp.
                 </span>
               </div>
             </>
@@ -278,44 +283,14 @@ export function Compare() {
             <>
               <label>
                 Tên phiên đối chiếu
-                <input maxLength={250} value={title} onChange={(e) => setTitle(e.target.value)} required />
+                <input
+                  maxLength={250}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={busy}
+                  required
+                />
               </label>
-              <div className="consent-box">
-                <ScanLine size={28} />
-                <h3>Cho phép gửi ảnh tới OpenAI</h3>
-                <p>
-                  Ảnh con dấu sẽ được gửi tới dịch vụ OpenAI để phân tích. Chỉ thực hiện với dữ liệu được phép
-                  chia sẻ.
-                </p>
-                <p>
-                  Tài liệu được gửi ra dịch vụ bên ngoài khi gọi OpenAI. Lần phân tích này chỉ gửi ROI đã xử
-                  lý, không gửi toàn bộ PDF.
-                </p>
-                <p>
-                  Nếu bạn đã xác nhận dùng toàn ảnh/trang trong Xưởng, toàn bộ nội dung của ảnh đó sẽ được
-                  gửi. Kiểm tra lại Q và từng K trước khi đồng ý.
-                </p>
-                <div className="call-summary">
-                  <span>
-                    Model <strong>{status.data?.model}</strong>
-                  </span>
-                  <span>
-                    Số yêu cầu so sánh <strong>{candidates.length}</strong>
-                  </span>
-                  <span>
-                    Chi phí <strong>Chưa xác định</strong>
-                  </span>
-                </div>
-                <label className="check">
-                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-                  Tôi được phép chia sẻ các ảnh này và đồng ý gửi tới OpenAI trong phiên này.
-                </label>
-              </div>
-              <Disclaimer />
-            </>
-          )}
-          {step === 5 && (
-            <>
               <div className="analysis-ready">
                 <div className="ready-icon">
                   <ScanLine size={36} />
@@ -323,31 +298,27 @@ export function Compare() {
                 <h2>{busy ? 'Đang đối chiếu hình ảnh…' : 'Sẵn sàng phân tích'}</h2>
                 <p>
                   {busy
-                    ? 'Vui lòng giữ trang mở. Kết quả sẽ được lưu khi OpenAI hoàn tất.'
-                    : `${candidates.length} cặp Q/K · ${status.data?.model} · không tự động gửi thêm ứng viên.`}
+                    ? 'Vui lòng giữ trang mở. Kết quả sẽ được lưu khi xử lý hoàn tất.'
+                    : `${candidates.length} cặp Q/K · không tự động thêm mẫu đối chiếu.`}
                 </p>
                 {!status.data?.is_configured && (
                   <div className="notice danger">
-                    Chưa cấu hình OPENAI_API_KEY trong backend/.env. <Link to="/settings">Xem cài đặt</Link>
+                    Dịch vụ so khớp chưa được cấu hình. <Link to="/settings">Xem cài đặt</Link>
                   </div>
                 )}
                 {error && <ErrorBox error={new Error(error)} />}
                 <Button
-                  disabled={busy || !consent || !status.data?.is_configured || user?.role === 'viewer'}
+                  disabled={busy || !title.trim() || !status.data?.is_configured || user?.role === 'viewer'}
                   onClick={() => void analyse()}
                 >
-                  {busy ? <LoaderCircle className="spin" size={18} /> : <ScanLine size={18} />}Phân tích bằng
-                  OpenAI
+                  {busy ? <LoaderCircle className="spin" size={18} /> : <ScanLine size={18} />}So khớp con dấu
                 </Button>
                 {sessionId && (
                   <Button variant="outline" asChild>
                     <Link to={`/compare/${sessionId}/results`}>Mở phiên đã lưu</Link>
                   </Button>
                 )}
-                <small>
-                  Giới hạn thời gian mỗi cặp: {status.data?.timeout_seconds} giây. Có tối đa 2 lần thử lại ở
-                  SDK cho lỗi tạm thời trong giới hạn này.
-                </small>
+                <small>Giới hạn thời gian mỗi cặp: {status.data?.timeout_seconds} giây.</small>
               </div>
             </>
           )}
@@ -357,13 +328,9 @@ export function Compare() {
             <ArrowLeft size={16} />
             Quay lại
           </Button>
-          {step < 5 && (
+          {step < 4 && (
             <Button
-              disabled={
-                (step === 1 && !q) ||
-                (step === 2 && !candidates.length) ||
-                (step === 4 && (!consent || !title.trim()))
-              }
+              disabled={(step === 1 && !q) || (step === 2 && !candidates.length)}
               onClick={() => setStep(step + 1)}
             >
               Tiếp tục

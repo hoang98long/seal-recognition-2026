@@ -19,10 +19,20 @@ import type { Entity, OpenAIStatus } from '../../types';
 import { ErrorBox, Loading, PageHeader } from '../../components/shared';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../auth/Auth';
+const auditActionLabels: Record<string, string> = {
+  openai_connection_test: 'Kiểm tra kết nối so khớp',
+  external_consent: 'Bắt đầu so khớp',
+  library_search_consent: 'Bắt đầu tra cứu thư viện',
+};
 export function Settings() {
   const [search, setSearch] = useSearchParams();
   const { user, refresh } = useAuth();
-  const tab = user?.must_change_password ? 'account' : search.get('tab') || 'openai';
+  const requestedTab = search.get('tab') || 'connection';
+  const tab = user?.must_change_password
+    ? 'account'
+    : requestedTab === 'openai'
+      ? 'connection'
+      : requestedTab;
   const [testing, setTesting] = useState(false);
   const [testMessage, setTestMessage] = useState('');
   const [testError, setTestError] = useState('');
@@ -58,9 +68,9 @@ export function Settings() {
       <div className="settings-grid">
         <nav className="settings-nav">
           {[
-            ['openai', 'Kết nối OpenAI', KeyRound],
+            ['connection', 'Kết nối so khớp', KeyRound],
             ['image', 'Xử lý ảnh', Settings2],
-            ['algorithms', 'Thuật toán', Cpu],
+            ['algorithms', 'Quy trình so khớp', Cpu],
             ['account', 'Tài khoản & mật khẩu', ShieldCheck],
             ['system', 'Quản lý hệ thống', Settings2],
           ].map(([key, title, Icon]) => {
@@ -79,14 +89,14 @@ export function Settings() {
           })}
         </nav>
         <section className="panel settings-content">
-          {tab === 'openai' && (
+          {tab === 'connection' && (
             <>
               <div className="settings-title">
                 <div className="ai-mark">
                   <Sparkles size={24} />
                 </div>
                 <div>
-                  <h2>Kết nối OpenAI API</h2>
+                  <h2>Kết nối dịch vụ so khớp</h2>
                   <p>Khóa API được đọc từ cấu hình riêng của backend.</p>
                 </div>
               </div>
@@ -107,13 +117,6 @@ export function Settings() {
                   </div>
                   <div className="setting-row">
                     <div>
-                      <strong>Model sử dụng</strong>
-                      <p>Đổi OPENAI_MODEL trong backend/.env, sau đó khởi động lại backend.</p>
-                    </div>
-                    <code>{status.data.model}</code>
-                  </div>
-                  <div className="setting-row">
-                    <div>
                       <strong>Giới hạn một phiên</strong>
                       <p>Mỗi ảnh tham chiếu tương ứng một yêu cầu so sánh.</p>
                     </div>
@@ -128,9 +131,8 @@ export function Settings() {
                   <div className="notice subtle">
                     <CircleHelp size={18} />
                     <span>
-                      Điền OPENAI_API_KEY trong backend/.env rồi khởi động lại backend. Việc mở trang này
-                      không gọi OpenAI. Nút kiểm tra chỉ xác nhận key và ID model, không gửi ảnh và không
-                      sinh nội dung. Khi so khớp ảnh, yêu cầu phân tích vẫn tính phí API.
+                      Quản trị viên cấu hình kết nối tại backend/.env rồi khởi động lại backend. Bấm Kiểm tra
+                      kết nối để đọc lại trạng thái.
                     </span>
                   </div>
                   {user?.role === 'admin' && (
@@ -141,9 +143,11 @@ export function Settings() {
                         setTestMessage('');
                         setTestError('');
                         try {
-                          const result = await post<{ message: string }>('/settings/openai/test', {});
-                          setTestMessage(result.message);
-                          toast.success(result.message);
+                          await post('/settings/openai/test', {});
+                          const message =
+                            'Kết nối dịch vụ đã được xác nhận. Chưa kiểm tra cặp ảnh hoặc hạn mức xử lý.';
+                          setTestMessage(message);
+                          toast.success(message);
                         } catch (e) {
                           setTestError((e as Error).message);
                         } finally {
@@ -170,14 +174,14 @@ export function Settings() {
             <>
               <h2>Cấu hình xử lý ảnh</h2>
               <p>
-                Cấu hình xử lý ảnh theo tổ chức được chỉnh trong Xưởng xử lý ảnh. Các giới hạn hệ
-                thống được đọc từ backend/.env.
+                Cấu hình xử lý ảnh theo tổ chức được chỉnh trong Xưởng xử lý ảnh. Các giới hạn hệ thống được
+                đọc từ backend/.env.
               </p>
               <dl className="metadata-list">
                 {[
                   ['Dung lượng tải lên', `${status.data?.max_upload_mb ?? '—'} MB`],
                   ['Số trang / khung tối đa', status.data?.max_pages ?? '—'],
-                  ['Cạnh ảnh tối đa gửi OpenAI', `${status.data?.max_image_side ?? '—'} px`],
+                  ['Cạnh ảnh tối đa để so khớp', `${status.data?.max_image_side ?? '—'} px`],
                   ['Phiên bản quy trình', status.data?.pipeline_version ?? '—'],
                   ['Đầu ra lưu trữ', 'PNG riêng, giữ nguyên tệp gốc'],
                 ].map(([label, value]) => (
@@ -191,25 +195,18 @@ export function Settings() {
           )}
           {tab === 'algorithms' && (
             <>
-              <h2>Nhà cung cấp phân tích</h2>
-              <p>
-                Các thuật toán tương lai chưa được đăng ký sử dụng. Không có điểm được sinh từ thuật toán chưa
-                triển khai.
-              </p>
+              <h2>Quy trình so khớp con dấu</h2>
+              <p>Chuẩn bị ảnh, đối chiếu với mẫu tham chiếu và lưu kết quả theo từng phiên.</p>
               <div className="algorithm-cards">
                 {[
-                  ['OpenAI Vision', 'Đã triển khai · cần cấu hình khóa', true],
-                  ['ICP + đặc trưng hình học', 'Đang phát triển', false],
-                  ['Siamese', 'Đang phát triển', false],
-                  ['Random Forest / SHAP', 'Đang phát triển', false],
-                ].map(([name, description, ready]) => (
+                  ['Chuẩn bị ảnh', 'Chọn trang, khoanh vùng dấu và kiểm tra chất lượng ảnh.'],
+                  ['So khớp hình ảnh', 'Nhận điểm tương đồng và xếp hạng mẫu tham chiếu.'],
+                  ['Lưu kết quả', 'Lưu ảnh đối chiếu, điểm và thời gian để xem lại hoặc xuất báo cáo.'],
+                ].map(([name, description]) => (
                   <div key={String(name)}>
                     <Cpu size={24} />
                     <h3>{name as string}</h3>
                     <p>{description as string}</p>
-                    <Button variant="outline" size="sm" disabled>
-                      {ready ? 'Nhà cung cấp V1' : 'Đang phát triển'}
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -324,7 +321,7 @@ export function Settings() {
                     <div className="audit-list">
                       {logs.data?.map((l) => (
                         <div key={l.id}>
-                          <code>{String(l.action)}</code>
+                          <code>{auditActionLabels[String(l.action)] || String(l.action)}</code>
                           <span>
                             {String(l.entity_type)} · {String(l.entity_id || '').slice(0, 8)}
                           </span>

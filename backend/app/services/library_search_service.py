@@ -23,6 +23,7 @@ from app.db.session import SessionLocal
 from app.schemas.common import CompareIn
 from app.services.analysis_orchestrator import compare
 from app.services.candidate_selection_service import normalized_asset
+from app.services.comparison_explanation import compact_explanation
 
 
 def corpus_query():
@@ -170,6 +171,7 @@ def search_state(db, session):
                     "result_id": str(result.id),
                     "reference_asset_id": str(candidate.reference_asset_id),
                     "summary": result.structured_result.get("summary_vi", ""),
+                    "explanation": compact_explanation(result),
                 }
     successful = sum(x.result_status != "error" for x in latest.values())
     ranked = sorted(organizations.values(), key=lambda x: (-x["score"], x["name"], x["id"]))[:3]

@@ -18,7 +18,7 @@ Bấm tên đơn vị hoặc **Xem con dấu** để mở hồ sơ. Ba mục tro
 2. Chọn đúng trang qua danh sách trang, ảnh thu nhỏ hoặc **Trang cuối**. Dấu điện tử nằm trong chú thích PDF hoặc biểu mẫu chữ ký được render cùng nội dung trang.
 3. Kéo chuột khoanh sát con dấu. Có thể vẽ khung mới ngay khi chưa có vùng chọn; nút **Chọn vùng** đưa công cụ về chế độ vẽ lại. Kéo góc để sửa kích thước, kéo khung để di chuyển sau khi vẽ. Gợi ý mực đỏ là tùy chọn, không bắt buộc.
 4. **Tách mực đỏ** giúp loại chữ ký/chữ in đen hoặc xanh. **Dấu đen / xám** cho xử lý xám/ngưỡng. Với dấu đen và chữ ký cùng màu, cần khoanh sát dấu; bộ lọc màu không thể bảo đảm tách riêng hai loại nét đó.
-5. Kiểm tra preview, bấm **Xác nhận vùng dấu Q/K**. Dùng toàn ảnh/trang vẫn cần xác nhận riêng. Các thông số thêm nằm trong phần mở rộng. Có thể đổi tên ảnh bằng biểu tượng bút bên tên đã lưu.
+5. Kiểm tra preview, bấm **Xác nhận vùng dấu Q/K**. Có thể chọn toàn ảnh/trang thay cho khoanh vùng. Các thông số thêm nằm trong phần mở rộng. Có thể đổi tên ảnh bằng biểu tượng bút bên tên đã lưu.
 6. Bấm **Lưu vào thư viện**. Tài liệu, trang nguồn, ảnh xử lý và đơn vị được liên kết. Ảnh được gắn trạng thái tham chiếu, chưa tự xác thực.
 7. Sau khi lưu, chọn **Tách dấu khác từ tài liệu này**, **Tài liệu tiếp theo** hoặc **Thêm ảnh dấu khác**. Như vậy một tài liệu có thể cho nhiều ảnh dấu đã khoanh riêng.
 
@@ -40,16 +40,18 @@ Chỉnh sửa/xóa không gửi ảnh tới OpenAI và không phát sinh lượt
 
 1. Mở `/compare/library`, tải PDF/ảnh bất kỳ và chuẩn bị Q. Hoặc từ xưởng/ảnh đã chuẩn bị bấm **Tra cứu Top 3**.
 2. Màn hình cho biết số mẫu hợp lệ, số tổ chức và số cặp Q/K sẽ gửi. Chỉ ảnh `processed_stamp` đã xác nhận vùng, có run xử lý và thuộc mẫu/đơn vị đang hoạt động mới tham gia. Mẫu chưa sẵn sàng được thống kê riêng.
-3. Xác nhận quyền chia sẻ và chi phí, bấm **Tra cứu Top 3 bằng OpenAI**. Đây là so sánh từng cặp qua OpenAI API; chưa có thuật toán matching nội bộ. Giới hạn 5 K của màn hình so khớp thủ công không cắt bớt lượt tra cứu toàn thư viện này.
+3. Bấm **Tra cứu Top 3** để bắt đầu ngay sau khi chuẩn bị Q. Đây vẫn là so sánh từng cặp qua OpenAI API; giao diện dùng nhãn trung tính, chưa có thuật toán matching nội bộ. Giới hạn 5 K của màn hình so khớp thủ công không cắt bớt lượt tra cứu toàn thư viện này.
 4. Theo dõi tiến độ. Mỗi kết quả được lưu ngay sau một cặp ảnh. Có thể mở lại phiên qua Lịch sử và nút **Top 3 & tiến độ tra cứu** trong kết quả chi tiết.
 5. Top 3 là tối đa ba **tổ chức khác nhau**; điểm của mỗi đơn vị là **điểm cao nhất trong các mẫu đã so của đơn vị đó**, không phải trung bình, không phải xác suất sở hữu dấu. CSDL có ít hơn ba đơn vị đủ dữ liệu thì hiển thị đúng số có kết quả.
-6. Có lỗi API hoặc backend bị ngắt: bảng ghi rõ kết quả tạm thời/chưa quét đủ. **Tiếp tục** cần xác nhận lại và chỉ chạy cặp lỗi hoặc chưa có kết quả, giữ các cặp đã thành công. Phiên ngắt đột ngột được nhận diện sau thời gian không có cập nhật lớn hơn timeout API + 120 giây. Backend cần chạy để tác vụ nền tiếp tục; không tự thực thi sau khi tiến trình bị dừng.
+6. Có lỗi API hoặc backend bị ngắt: bảng ghi rõ kết quả tạm thời/chưa quét đủ. **Tiếp tục** chỉ chạy cặp lỗi hoặc chưa có kết quả, giữ các cặp đã thành công. Phiên ngắt đột ngột được nhận diện sau thời gian không có cập nhật lớn hơn timeout API + 120 giây. Backend cần chạy để tác vụ nền tiếp tục; không tự thực thi sau khi tiến trình bị dừng.
 
 Màu nhất quán trên kết quả cặp, Top 3 và báo cáo: **>90% xanh**, **70–90% vàng**, **<70% đỏ**, **không đủ dữ liệu màu xám/không gán điểm**. Ngưỡng màu chỉ giúp đọc kết quả, không ép model chấm điểm cao.
 
+Kết quả hiển thị gọn gồm điểm, mức đánh giá, ảnh đối chiếu, thời gian và xếp hạng tổ chức. Mỗi mẫu kết quả có một câu kết luận, tối đa ba căn cứ quan sát và một lưu ý nếu có; Top 3 dùng nhận xét của mẫu đạt điểm cao nhất thuộc từng đơn vị. Diễn giải chi tiết, OCR, model/prompt/token không hiển thị trên giao diện hoặc báo cáo xuất. Dữ liệu đầy đủ vẫn được lưu nội bộ; không tự tạo điểm thành phần hoặc số lượng đặc trưng khi bộ xử lý chưa trả các chỉ số đó.
+
 ## Chỉ so sánh con dấu và đọc chữ
 
-Prompt `seal-only-vi-v2` yêu cầu bỏ chữ ký, tên người ký và chức danh/chữ đánh máy chồng lên khỏi tiêu chí tương đồng. Nét che được ghi là vùng chưa rõ, không tự coi là khác biệt của dấu. Chữ in rõ khác nhau trên vành dấu vẫn là khác biệt thiết kế có ý nghĩa.
+Prompt `seal-brief-vi-v3` tiếp tục yêu cầu bỏ chữ ký, tên người ký và chức danh/chữ đánh máy chồng lên khỏi tiêu chí tương đồng. Nét che được ghi là vùng chưa rõ, không tự coi là khác biệt của dấu. Chữ in rõ khác nhau trên vành dấu vẫn là khác biệt thiết kế có ý nghĩa.
 
 Hai ảnh gửi API dùng `detail: high`. Ảnh nhỏ được phóng tối đa 4 lần, cạnh dài tối đa 1024 cho mục đích đọc chữ, vẫn tuân thủ giới hạn ảnh cấu hình. Phóng ảnh không phục hồi nét đã mất. Model được yêu cầu đọc đủ các cung chữ, kiểm tra dấu tiếng Việt và không tự điền từ như “Thủ” nếu thật sự bị che. Các kết quả cũ vẫn giữ prompt/model tại thời điểm chạy; cần tạo lượt so khớp mới để dùng prompt mới.
 

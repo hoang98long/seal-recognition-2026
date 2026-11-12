@@ -364,7 +364,7 @@ export function Library() {
         <BookOpen size={18} />
         <span>
           Ảnh trong thư viện là dữ liệu tham chiếu. Nhãn “Đã xác thực” do chuyên viên ghi nhận, không phải kết
-          luận của AI.
+          luận tự động của hệ thống.
         </span>
       </div>
       {editing !== undefined && (
@@ -679,7 +679,7 @@ export function Library() {
                 {usage.data.map((r) => (
                   <li key={r.id}>
                     <Link to={`/compare/${r.session_id}/results`}>
-                      {dateTime(r.created_at)} · {r.model_name} · {statusLabel[r.result_status]}
+                      {dateTime(r.created_at)} · {statusLabel[r.result_status]}
                     </Link>
                   </li>
                 ))}

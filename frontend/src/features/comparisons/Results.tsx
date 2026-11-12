@@ -4,18 +4,19 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeftRight, Download, ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, post, previewUrl } from '../../lib/api';
-import { dateTime, scoreBand, scoreLabel, statusLabel, verdictLabel } from '../../lib/utils';
-import type { Analysis, Annotation, Asset, Evidence, Result, ROI } from '../../types';
+import { dateTime, statusLabel } from '../../lib/utils';
+import type { Analysis, Annotation, Asset, Result, ROI } from '../../types';
 import { Disclaimer, Empty, ErrorBox, Loading, PageHeader } from '../../components/shared';
 import { Button } from '../../components/ui/button';
 import { RegionCanvas } from '../../components/image-editor/RegionCanvas';
 import { useAuth } from '../auth/Auth';
+import { MatchSummary } from '../../components/MatchSummary';
 
 export function Results() {
   const { sessionId } = useParams();
   const [search] = useSearchParams();
   const [selected, setSelected] = useState(search.get('result') || '');
-  const [tab, setTab] = useState('summary');
+  const [tab, setTab] = useState('metadata');
   const [swap, setSwap] = useState(false);
   const [sync, setSync] = useState(true);
   const [zoomQ, setZoomQ] = useState(1);
@@ -48,11 +49,10 @@ export function Results() {
   if (session.isPending || results.isPending) return <Loading />;
   if (session.error || results.error) return <ErrorBox error={session.error || results.error} />;
   const canOverlay = qAsset.data?.width === kAsset.data?.width && qAsset.data?.height === kAsset.data?.height;
-  const data = result?.structured_result;
   return (
     <>
       <PageHeader
-        eyebrow="RÉSULTAT · KẾT QUẢ ĐỐI CHIẾU"
+        eyebrow="KẾT QUẢ ĐỐI CHIẾU"
         title={session.data.title}
         description={`Phiên ${sessionId?.slice(0, 8)} · ${dateTime(session.data.created_at)} · ${statusLabel[session.data.status]}`}
       >
@@ -85,7 +85,7 @@ export function Results() {
       <Disclaimer />
       {!result ? (
         <Empty
-          title={session.data.status === 'running' ? 'Đang chờ OpenAI phản hồi' : 'Phiên chưa có kết quả'}
+          title={session.data.status === 'running' ? 'Đang xử lý so khớp' : 'Phiên chưa có kết quả'}
           description="Mọi lần chạy được lưu thành kết quả mới. Có thể tiếp tục phiên với các ảnh đã chọn."
         >
           <Button asChild>
@@ -110,32 +110,9 @@ export function Results() {
                 ))}
               </select>
             </label>
-            <span className="badge">{result.model_name}</span>
             <span className="muted">{result.duration_ms.toLocaleString('vi-VN')} ms</span>
           </div>
-          {result.result_status === 'error' ? (
-            <ErrorBox
-              error={new Error(result.error_summary || 'Không phân tích được ảnh. Không có điểm tương đồng.')}
-            />
-          ) : (
-            <div className={`result-summary panel score-${scoreBand(data?.visual_similarity_score)}`}>
-              <div className="score-circle">
-                <strong>{data?.visual_similarity_score ?? '—'}</strong>
-                <span>/ 100</span>
-              </div>
-              <div>
-                <p className="eyebrow">ĐIỂM TƯƠNG ĐỒNG DO AI ƯỚC LƯỢNG</p>
-                <h2>{verdictLabel[result.verdict]}</h2>
-                <span className={`score-badge score-${scoreBand(data?.visual_similarity_score)}`}>
-                  {scoreLabel(data?.visual_similarity_score)}
-                </span>
-                <p>{data?.summary_vi}</p>
-                <small>
-                  Mức tự tin thị giác: {statusLabel[data?.visual_confidence_label || 'low']} · Chưa hiệu chuẩn
-                </small>
-              </div>
-            </div>
-          )}
+          <MatchSummary result={result} />
           <section className="panel result-images-panel">
             <div className="panel-heading">
               <h2>Đối chiếu hình ảnh</h2>
@@ -239,11 +216,7 @@ export function Results() {
           <section className="panel result-details">
             <div className="tabs">
               {[
-                ['summary', 'Tổng quan'],
-                ['matching', 'Điểm tương đồng'],
-                ['differing', 'Điểm khác biệt'],
-                ['uncertain', 'Vùng chưa rõ'],
-                ['technical', 'Chi tiết kỹ thuật'],
+                ['metadata', 'Thông tin ảnh'],
                 ['annotations', 'Khoanh vùng'],
               ].map(([key, title]) => (
                 <button key={key} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>
@@ -252,61 +225,27 @@ export function Results() {
               ))}
             </div>
             <div className="tab-content">
-              {tab === 'summary' && (
-                <>
-                  <div className="form-grid">
-                    <div>
-                      <h3>Quan sát ảnh Q</h3>
-                      <StringList values={data?.observations_q || []} />
-                      <h4>Chữ đọc được</h4>
-                      <StringList values={data?.text_recognition_q || []} />
+              {tab === 'metadata' && (
+                <dl className="metadata-list">
+                  {[
+                    [
+                      'Kích thước ảnh Q',
+                      qAsset.data ? `${qAsset.data.width} × ${qAsset.data.height} px` : '—',
+                    ],
+                    [
+                      'Kích thước ảnh K',
+                      kAsset.data ? `${kAsset.data.width} × ${kAsset.data.height} px` : '—',
+                    ],
+                    ['Trang nguồn Q', result.input_metadata.query.preprocessing?.source_page ?? '—'],
+                    ['Trang nguồn K', result.input_metadata.reference.preprocessing?.source_page ?? '—'],
+                    ['Thời gian xử lý', `${result.duration_ms.toLocaleString('vi-VN')} ms`],
+                  ].map(([label, value]) => (
+                    <div key={String(label)}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
                     </div>
-                    <div>
-                      <h3>Quan sát ảnh K</h3>
-                      <StringList values={data?.observations_k || []} />
-                      <h4>Chữ đọc được</h4>
-                      <StringList values={data?.text_recognition_k || []} />
-                    </div>
-                  </div>
-                  <h3>Hạn chế</h3>
-                  <StringList values={data?.limitations || []} />
-                  <h3>Khuyến nghị</h3>
-                  <p>{data?.recommendation_vi || 'Chưa có khuyến nghị.'}</p>
-                </>
-              )}
-              {tab === 'matching' && <EvidenceList values={data?.matching_features || []} tone="similar" />}
-              {tab === 'differing' && (
-                <EvidenceList values={data?.differing_features || []} tone="different" />
-              )}
-              {tab === 'uncertain' && (
-                <EvidenceList values={data?.uncertain_features || []} tone="uncertain" />
-              )}
-              {tab === 'technical' && (
-                <>
-                  <dl className="metadata-list">
-                    {[
-                      ['Nhà cung cấp', 'OpenAI Vision'],
-                      ['Model', result.model_name],
-                      ['Phiên bản SDK', result.provider_version],
-                      ['Phiên bản prompt', result.prompt_version],
-                      ['Mã yêu cầu', result.request_id_provider || 'Không có'],
-                      ['Thời gian xử lý', `${result.duration_ms} ms`],
-                      ['Chi phí', 'Chưa xác định'],
-                      ['Hiệu chuẩn', 'Chưa hiệu chuẩn'],
-                      ['SHA256 ảnh Q', result.input_metadata.query.sha256],
-                      ['SHA256 ảnh K', result.input_metadata.reference.sha256],
-                    ].map(([label, value]) => (
-                      <div key={label}>
-                        <dt>{label}</dt>
-                        <dd>{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <h3>Sử dụng token</h3>
-                  <pre>{JSON.stringify(result.token_usage, null, 2)}</pre>
-                  <h3>Thông số và nguồn ảnh đã lưu</h3>
-                  <pre>{JSON.stringify(result.input_metadata, null, 2)}</pre>
-                </>
+                  ))}
+                </dl>
               )}
               {tab === 'annotations' && qAsset.data && kAsset.data && (
                 <Annotations result={result} q={qAsset.data} k={kAsset.data} />
@@ -316,38 +255,6 @@ export function Results() {
         </>
       )}
     </>
-  );
-}
-function StringList({ values }: { values: string[] }) {
-  return values.length ? (
-    <ul className="simple-list">
-      {values.map((v, i) => (
-        <li key={i}>{v}</li>
-      ))}
-    </ul>
-  ) : (
-    <p className="muted">Không có thông tin quan sát được ghi nhận.</p>
-  );
-}
-function EvidenceList({ values, tone }: { values: Evidence[]; tone: string }) {
-  return values.length ? (
-    <div className="evidence-list">
-      {values.map((e, i) => (
-        <article key={i} className={tone}>
-          <div>
-            <span className="badge">{statusLabel[e.category]}</span>
-            <span className="muted">Mức độ: {statusLabel[e.strength]}</span>
-          </div>
-          <h3>{e.description}</h3>
-          <p>Vị trí mô tả: {e.region_description}</p>
-        </article>
-      ))}
-    </div>
-  ) : (
-    <Empty
-      title="Không có dấu hiệu được ghi nhận"
-      description="Vùng không quan sát rõ không được tự coi là khác biệt."
-    />
   );
 }
 function Annotations({ result, q, k }: { result: Result; q: Asset; k: Asset }) {
@@ -380,8 +287,8 @@ function Annotations({ result, q, k }: { result: Result; q: Asset; k: Asset }) {
   return (
     <>
       <div className="notice subtle">
-        Khoanh vùng do người dùng vẽ, không phải tọa độ do AI xác định. Xanh lá: tương đồng · Đỏ: khác biệt ·
-        Vàng: chưa rõ · Xanh dương: ghi chú.
+        Khoanh vùng và ghi chú được chuyên viên tạo thủ công. Xanh lá: tương đồng · Đỏ: khác biệt · Vàng: chưa
+        rõ · Xanh dương: ghi chú.
       </div>
       <div className="annotation-tools">
         <select

@@ -51,15 +51,15 @@ export function Dashboard() {
       <div className="hero-panel">
         <div>
           <span className="hero-badge">
-            <Sparkles size={14} /> PHÂN TÍCH HÌNH ẢNH VỚI OPENAI VISION
+            <Sparkles size={14} /> SO KHỚP HÌNH ẢNH CON DẤU
           </span>
           <h2>
             Từ hình ảnh đến
             <br />
-            những quan sát rõ ràng.
+            kết quả đối chiếu trực quan.
           </h2>
           <p>
-            Chọn vùng con dấu, làm sạch ảnh và đối chiếu từng chi tiết.
+            Chọn vùng con dấu, chuẩn bị ảnh và kiểm tra mức tương đồng.
             <br />
             Mọi phiên xử lý đều lưu lại nguồn ảnh và thông số đã dùng.
           </p>
@@ -104,7 +104,7 @@ export function Dashboard() {
             '/compare/library',
             ScanLine,
             'Tra cứu Top 3 tổ chức',
-            'So khớp qua OpenAI với thư viện trong CSDL',
+            'Đối chiếu con dấu với thư viện trong CSDL',
           ],
           [
             '/seal-library/add',
@@ -173,14 +173,11 @@ export function Dashboard() {
             <div className="ai-mark">
               <Sparkles size={24} />
             </div>
-            <h3>OpenAI Vision</h3>
+            <h3>Dịch vụ so khớp con dấu</h3>
             <span className={`badge ${status.data?.is_configured ? 'completed' : 'draft'}`}>
-              {status.data?.is_configured ? 'Đã cấu hình khóa API' : 'Chưa cấu hình khóa API'}
+              {status.data?.is_configured ? 'Đã cấu hình kết nối' : 'Chưa cấu hình kết nối'}
             </span>
-            <p>
-              Model: <strong>{status.data?.model || 'Đang tải…'}</strong>
-            </p>
-            <p>Ảnh chỉ được gửi khi bạn xác nhận phân tích. Xử lý nội bộ luôn khả dụng.</p>
+            <p>Chuẩn bị ảnh, bắt đầu so khớp và xem kết quả trong cùng một quy trình.</p>
             <Button variant="outline" asChild>
               <Link to="/settings">
                 Cài đặt kết nối <ArrowRight size={15} />

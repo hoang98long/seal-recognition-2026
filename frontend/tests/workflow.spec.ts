@@ -78,17 +78,11 @@ test('DEMO: đăng nhập, CRUD, cắt ảnh, so sánh, chú thích và báo cá
   await page.screenshot({ path: 'test-results/editor-1366.png', fullPage: true });
   await page.goto('/compare/new');
   for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
-  await page
-    .getByLabel('Tôi được phép chia sẻ các ảnh này và đồng ý gửi tới OpenAI trong phiên này.')
-    .check();
-  await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
-  await page.getByRole('button', { name: 'Phân tích bằng OpenAI', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true })).toBeVisible();
-  await expect(
-    page.getByText('DEMO — không phải AI thật. Hai ảnh thử nghiệm có vòng tròn và chữ DEMO.', {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: 'So khớp con dấu', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Cần xem xét', exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('DEMO — không phải AI thật');
+  await expect(page.locator('body')).not.toContainText('OpenAI');
+  await expect(page.locator('.score-circle strong')).toHaveText('80');
   await page.getByRole('button', { name: 'Khoanh vùng', exact: true }).click();
   const annotation = page.locator('.tab-content .roi-svg');
   const ab = (await annotation.boundingBox())!;
@@ -104,7 +98,8 @@ test('DEMO: đăng nhập, CRUD, cắt ảnh, so sánh, chú thích và báo cá
   const reportHref = await page.getByRole('link', { name: 'Xuất HTML', exact: true }).getAttribute('href');
   const report = await page.request.get(reportHref!);
   expect(report.ok()).toBeTruthy();
-  expect(await report.text()).toContain('DEMO — không phải AI thật');
+  expect(await report.text()).toContain('Điểm tương đồng');
+  expect(await report.text()).not.toMatch(/OpenAI|gpt-|seal-only-vi|SDK|Quan sát Q|Khuyến nghị/);
   await page.goto('/seal-library');
   await page.getByRole('link', { name: 'Thêm con dấu tổ chức', exact: true }).click();
   await page

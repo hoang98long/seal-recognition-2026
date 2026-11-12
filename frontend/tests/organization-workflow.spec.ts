@@ -138,19 +138,16 @@ test('Tổ chức → nhiều tài liệu → khoanh dấu đen bằng chuột �
   expect(inventory.reference_count).toBeGreaterThan(5);
   await page.goto(`/compare/library?q=${q.asset.id}`);
   await expect(page.getByRole('heading', { name: 'Dấu Q đã chuẩn bị', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Tra cứu Top 3 bằng OpenAI', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Tra cứu Top 3', exact: true })).toBeEnabled();
+  await expect(page.locator('.lookup-confirm input[type=checkbox]')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText(/bên ngoài|chia sẻ|gửi tới/i);
   expect(searches).toBe(0);
-  await page
-    .getByLabel(
-      'Tôi được phép chia sẻ dấu Q và các dấu tham chiếu, đồng ý gửi qua OpenAI và chấp nhận chi phí API.',
-      { exact: true },
-    )
-    .check();
-  await page.getByRole('button', { name: 'Tra cứu Top 3 bằng OpenAI', exact: true }).click();
+  await page.getByRole('button', { name: 'Tra cứu Top 3', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Kết quả xếp hạng tổ chức', exact: true })).toBeVisible({
     timeout: 30000,
   });
   await expect(page.locator('.ranking-card')).toHaveCount(3);
+  await expect(page.locator('.ranking-card .match-explanation')).toHaveCount(3);
   await expect(page.getByText('96%', { exact: true })).toHaveClass(/score-green/);
   await expect(page.getByText('90%', { exact: true })).toHaveClass(/score-yellow/);
   await expect(page.getByText('65%', { exact: true })).toHaveClass(/score-red/);

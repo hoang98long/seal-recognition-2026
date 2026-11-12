@@ -286,7 +286,7 @@ export function StampPreparation({
             </div>
             <p className="muted small">
               Mực đỏ có thể lọc chữ ký đen/xanh. Với dấu đen và chữ ký cùng màu, hãy khoanh sát dấu; phần che
-              khuất sẽ được AI ghi là chưa rõ.
+              khuất có thể làm giảm khả năng đối chiếu.
             </p>
             {organizationId && (
               <label>
@@ -409,8 +409,7 @@ export function StampPreparation({
                       invalidate();
                     }}
                   />
-                  Cho phép dùng toàn ảnh {role}: toàn bộ nội dung ảnh/trang này có thể được gửi OpenAI. Chỉ
-                  chọn khi phù hợp.
+                  Chọn toàn ảnh {role}
                 </label>
               </div>
             )}

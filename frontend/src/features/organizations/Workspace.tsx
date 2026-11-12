@@ -71,7 +71,7 @@ export function OrganizationWorkspace() {
       <div className="workflow-guide">
         <span>1. Chọn tổ chức</span>
         <span>2. Tải tài liệu, tách và lưu dấu</span>
-        <Link to="/compare/library">3. Tra cứu Top 3 qua OpenAI →</Link>
+        <Link to="/compare/library">3. Tra cứu Top 3 →</Link>
       </div>
       <div className="tabs">
         {[

@@ -20,6 +20,7 @@ from app.db.session import get_db
 from app.schemas.common import AnalysisIn, AnnotationIn, CompareIn
 from app.services.analysis_orchestrator import compare
 from app.services.candidate_selection_service import active_candidates, add_candidates, normalized_asset
+from app.services.comparison_explanation import compact_explanation
 from app.services.storage_service import authorized_asset
 
 router = APIRouter(tags=["Phân tích"])
@@ -129,6 +130,7 @@ def results(ident: uuid.UUID, user: User = Depends(current_user), db: Session = 
         result.append(
             {
                 **public(item),
+                "explanation": compact_explanation(item),
                 "annotations": [
                     public(x)
                     for x in db.scalars(

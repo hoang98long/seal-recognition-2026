@@ -1,3 +1,5 @@
+import { serviceErrorMessage } from './comparisonPresentation';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -35,7 +37,9 @@ export async function request(path: string, init: RequestInit = {}): Promise<Res
     throw new ApiError(
       response.status,
       data?.error?.code || 'http_error',
-      data?.error?.message || `Yêu cầu thất bại (${response.status}).`,
+      serviceErrorMessage(data?.error?.code) ||
+        data?.error?.message ||
+        `Yêu cầu thất bại (${response.status}).`,
     );
   }
   return response;

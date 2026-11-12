@@ -74,16 +74,11 @@ test('Thêm dấu cùng tổ chức mới, chọn lại từ thư viện và so 
   await q.getByRole('button', { name: 'Xác nhận vùng dấu Q', exact: true }).click();
   await expect(q.getByRole('button', { name: 'Ảnh Q đã sẵn sàng', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Tiếp tục so khớp', exact: true }).click();
-  await page
-    .getByLabel('Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.', {
-      exact: true,
-    })
-    .check();
-  await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
+  await page.getByRole('button', { name: 'So khớp con dấu', exact: true }).click();
   await expect(
     page
       .getByRole('region', { name: 'Kết quả so khớp', exact: true })
-      .getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true }),
+      .getByRole('heading', { name: 'Cần xem xét', exact: true }),
   ).toBeVisible();
   const sessionLink = await page.getByRole('link', { name: /Mở phiên đã lưu/ }).getAttribute('href');
   const session = await (await page.request.get(`/api/v1/analyses/${sessionLink!.split('/')[2]}`)).json();

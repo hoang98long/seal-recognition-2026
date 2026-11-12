@@ -42,7 +42,6 @@ export function DocumentDemo() {
   );
   const [libraryReference, setLibraryReference] = useState<Impression | null>(null);
   const [loadingReference, setLoadingReference] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [analysisId, setAnalysisId] = useState('');
   const [error, setError] = useState('');
   const [uploadingQ, setUploadingQ] = useState(false);
@@ -98,17 +97,14 @@ export function DocumentDemo() {
     latest.input_metadata.reference.asset_id === referenceStamp.asset.id;
   const preparedQ = useCallback((value: PreparedStamp | null) => {
     setQueryStamp(value);
-    setConsent(false);
     setError('');
   }, []);
   const preparedK = useCallback((value: PreparedStamp | null) => {
     setReferenceStamp(value);
-    setConsent(false);
     setError('');
   }, []);
   function resetSession() {
     setAnalysisId('');
-    setConsent(false);
     setError('');
   }
   function newDemo() {
@@ -127,16 +123,15 @@ export function DocumentDemo() {
     if (
       submitting.current ||
       !source ||
+      !title.trim() ||
       !queryStamp ||
       !referenceStamp ||
-      !consent ||
       !status.data?.is_configured
     )
       return;
     submitting.current = true;
     setAnalysing(true);
     setError('');
-    setConsent(false);
     let id = analysisId;
     try {
       const candidates = [
@@ -190,7 +185,7 @@ export function DocumentDemo() {
   return (
     <>
       <PageHeader
-        eyebrow="SO KHỚP VỚI OPENAI"
+        eyebrow="SO KHỚP CON DẤU"
         title="So khớp văn bản & ảnh dấu"
         description="Tải văn bản, chọn dấu đối chiếu và nhận kết quả trong cùng một quy trình."
       >
@@ -219,7 +214,7 @@ export function DocumentDemo() {
             </div>
             <span className="demo-local-badge">
               <ShieldCheck size={15} />
-              Chỉ gửi sau khi xác nhận
+              Chuẩn bị ảnh · So khớp · Xem kết quả
             </span>
           </section>
           <div className="stepper demo-stepper">
@@ -233,10 +228,10 @@ export function DocumentDemo() {
           <div className="demo-provider-status">
             <span className={`badge ${status.data?.is_configured ? 'completed' : 'draft'}`}>
               {status.isPending
-                ? 'Đang kiểm tra cấu hình OpenAI…'
+                ? 'Đang kiểm tra dịch vụ so khớp…'
                 : status.data?.is_configured
-                  ? 'OpenAI sẵn sàng'
-                  : 'Chưa cấu hình khóa OpenAI'}
+                  ? 'Sẵn sàng so khớp'
+                  : 'Chưa cấu hình dịch vụ so khớp'}
             </span>
             <button
               className="text-link"
@@ -245,13 +240,13 @@ export function DocumentDemo() {
             >
               Đọc lại trạng thái
             </button>
-            <span className="muted small">Upload và chuẩn bị ảnh chỉ xử lý nội bộ.</span>
+            <span className="muted small">Chuẩn bị ảnh để so khớp.</span>
           </div>
           {status.error && <ErrorBox error={status.error} />}
           {status.data && !status.data.is_configured && (
             <div className="notice">
-              Chưa cấu hình OPENAI_API_KEY trong backend/.env. Bạn vẫn có thể tải lên và chuẩn bị Q/K; điền
-              key và khởi động lại backend để so khớp. <Link to="/settings">Xem cài đặt</Link>
+              Dịch vụ so khớp chưa sẵn sàng. Bạn vẫn có thể tải lên và chuẩn bị Q/K; liên hệ quản trị viên để
+              kiểm tra kết nối. <Link to="/settings">Xem cài đặt</Link>
             </div>
           )}
           {step !== 3 && error && <ErrorBox error={new Error(error)} />}
@@ -402,13 +397,12 @@ export function DocumentDemo() {
             <>
               <section className="panel demo-review">
                 <div className="panel-heading">
-                  <h2>Kiểm tra hai ảnh sẽ gửi tới OpenAI</h2>
+                  <h2>Kiểm tra hai ảnh con dấu</h2>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={busy}
                     onClick={() => {
-                      setConsent(false);
                       setStep(2);
                     }}
                   >
@@ -418,11 +412,11 @@ export function DocumentDemo() {
                 <div className="comparison-images">
                   <figure>
                     <figcaption>Dấu trong văn bản (Q) · trang {queryStamp.run.source_page}</figcaption>
-                    <img src={previewUrl(queryStamp.asset.id)} alt="Ảnh Q sẽ gửi OpenAI" />
+                    <img src={previewUrl(queryStamp.asset.id)} alt="Ảnh Q dùng để so khớp" />
                   </figure>
                   <figure>
                     <figcaption>Ảnh dấu đối chiếu (K)</figcaption>
-                    <img src={previewUrl(referenceStamp.asset.id)} alt="Ảnh K sẽ gửi OpenAI" />
+                    <img src={previewUrl(referenceStamp.asset.id)} alt="Ảnh K dùng để đối chiếu" />
                   </figure>
                 </div>
                 <div className="demo-review-form">
@@ -435,23 +429,6 @@ export function DocumentDemo() {
                       onChange={(e) => setTitle(e.target.value)}
                     />
                   </label>
-                  <details className="demo-extra">
-                    <summary>Thông tin xử lý</summary>
-                    <div className="call-summary">
-                      <span>
-                        Nhà cung cấp<strong>OpenAI Vision</strong>
-                      </span>
-                      <span>
-                        Model<strong>{status.data?.model || 'Đang tải…'}</strong>
-                      </span>
-                      <span>
-                        Số yêu cầu<strong>1 cặp Q/K</strong>
-                      </span>
-                      <span>
-                        Chi phí<strong>Chưa xác định</strong>
-                      </span>
-                    </div>
-                  </details>
                   {(queryStamp.asset.source_metadata.whole_source_confirmed ||
                     referenceStamp.asset.source_metadata.whole_source_confirmed) && (
                     <div className="notice">
@@ -461,38 +438,22 @@ export function DocumentDemo() {
                       referenceStamp.asset.source_metadata.whole_source_confirmed
                         ? ' và '
                         : ''}
-                      {referenceStamp.asset.source_metadata.whole_source_confirmed ? 'K' : ''}. Toàn bộ nội
-                      dung ảnh đó sẽ được gửi.
+                      {referenceStamp.asset.source_metadata.whole_source_confirmed ? 'K' : ''}.
                     </div>
                   )}
-                  <label className="check demo-consent">
-                    <input
-                      type="checkbox"
-                      checked={consent}
-                      disabled={busy}
-                      onChange={(e) => setConsent(e.target.checked)}
-                    />
-                    Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.
-                  </label>
-                  <p className="muted small">
-                    Mỗi lần chạy cần xác nhận lại. Kết quả được lưu tự động để xem và xuất báo cáo.
-                  </p>
+                  <p className="muted small">Kết quả được lưu tự động để xem lại và xuất báo cáo.</p>
                   {error && <ErrorBox error={new Error(error)} />}
                   <Button
-                    disabled={busy || !consent || !title.trim() || !status.data?.is_configured}
+                    disabled={busy || !title.trim() || !status.data?.is_configured}
                     onClick={() => void analyse()}
                   >
                     {analysing ? <LoaderCircle className="spin" size={18} /> : <ScanLine size={18} />}
-                    {analysing
-                      ? 'Đang so khớp bằng OpenAI…'
-                      : latest
-                        ? 'So khớp lại bằng OpenAI'
-                        : 'So khớp bằng OpenAI'}
+                    {analysing ? 'Đang so khớp…' : latest ? 'So khớp lại' : 'So khớp con dấu'}
                   </Button>
                   {analysing && (
                     <p className="demo-wait" role="status">
-                      Đang đợi OpenAI phân tích hai ảnh. Thời gian chờ tối đa mỗi cặp:{' '}
-                      {status.data?.timeout_seconds} giây. Vui lòng giữ trang mở.
+                      Đang xử lý hai ảnh. Thời gian chờ tối đa mỗi cặp: {status.data?.timeout_seconds} giây.
+                      Vui lòng giữ trang mở.
                     </p>
                   )}
                 </div>
@@ -522,7 +483,6 @@ export function DocumentDemo() {
               variant="outline"
               disabled={step === 1 || busy}
               onClick={() => {
-                setConsent(false);
                 setStep(step - 1);
               }}
             >

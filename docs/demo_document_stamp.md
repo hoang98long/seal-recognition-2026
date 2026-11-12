@@ -5,13 +5,15 @@ Mở **Văn bản & ảnh dấu** trong sidebar hoặc Tổng quan: **http://loc
 ## So khớp trong ba bước
 
 1. **Chọn văn bản & dấu mẫu:** tải PDF/ảnh văn bản. Tải ảnh dấu từ máy hoặc mở **Chọn từ thư viện**, tìm theo tên dấu/tổ chức. Không cần chuẩn bị thư viện trước.
-2. **Kiểm tra vùng dấu:** chọn đúng trang nếu tệp có nhiều trang. Vùng mực đỏ được gợi ý tự động; kéo khung để chỉnh hoặc khoanh thủ công nếu không có gợi ý. Bấm **Xác nhận vùng dấu Q/K** để lưu. Dấu đã chuẩn bị trong thư viện dùng ngay, không phải cắt lại. Tọa độ/thông số nâng cao nằm trong mục mở rộng. Dùng toàn ảnh vẫn cần xác nhận riêng.
-3. **So khớp & kết quả:** kiểm tra hai ảnh, xác nhận quyền chia sẻ và bấm **So khớp bằng OpenAI**. Tên phiên tự điền theo văn bản và có thể sửa trước lần chạy đầu. Kết quả hiện ngay bên dưới: điểm/null, nhận xét, giống/khác/chưa rõ, chữ đọc được, hạn chế và khuyến nghị.
-4. **Báo cáo / lịch sử:** xuất HTML để in/lưu PDF, mở kết quả đầy đủ để khoanh vùng hoặc xem kỹ thuật. Chạy lại cần xác nhận chia sẻ lại và thêm phiên bản kết quả; không ghi đè bản cũ. Nếu chỉnh ROI/thông số, phải lưu lại Q/K trước khi gửi tiếp.
+2. **Kiểm tra vùng dấu:** chọn đúng trang nếu tệp có nhiều trang. Vùng mực đỏ được gợi ý tự động; kéo khung để chỉnh hoặc khoanh thủ công nếu không có gợi ý. Bấm **Xác nhận vùng dấu Q/K** để lưu. Dấu đã chuẩn bị trong thư viện dùng ngay, không phải cắt lại. Tọa độ/thông số nâng cao nằm trong mục mở rộng. Chọn **Dùng toàn ảnh Q/K** và tích **Chọn toàn ảnh Q/K** nếu muốn giữ nguyên ảnh.
+3. **So khớp & kết quả:** kiểm tra hai ảnh và bấm **So khớp con dấu**. Tên phiên tự điền theo văn bản và có thể sửa trước lần chạy đầu. Kết quả gồm điểm tương đồng, mức đánh giá, một câu kết luận, tối đa ba căn cứ quan sát, một lưu ý nếu có, thời gian xử lý và số phiên bản; không đủ dữ liệu thì không gán điểm.
+4. **Báo cáo / lịch sử:** xuất HTML để in/lưu PDF, chọn **Xem ảnh đối chiếu** để xem Q/K, thông tin ảnh hoặc thêm khoanh vùng thủ công. Báo cáo cũng dùng bản gọn: ảnh, điểm, mức đánh giá, kết luận/căn cứ/lưu ý ngắn, thời gian và ghi chú thủ công nếu có. Bấm **So khớp lại** để thêm phiên bản kết quả; không ghi đè bản cũ. Nếu chỉnh ROI/thông số, phải lưu lại Q/K trước khi so khớp tiếp.
+
+Giao diện dùng tên trung tính “So khớp con dấu”, không hiển thị nhà cung cấp, model, prompt, token hoặc các diễn giải chi tiết/OCR. Kết nối OpenAI hiện tại và dữ liệu phản hồi đầy đủ vẫn được giữ trong backend/CSDL để kiểm tra; thay đổi giao diện không triển khai thuật toán matching mới và không thay key/model trong `.env`.
 
 Key/model lấy từ backend/.env và key không được đưa ra frontend. Nếu đổi cấu hình, khởi động lại backend và bấm **Đọc lại trạng thái** trên trang.
 
-Thiếu key vẫn tải/chuẩn bị ảnh được, nút so khớp bị khóa. Key sai, timeout, 429, refusal hoặc phản hồi không hợp lệ hiển thị lỗi, không tự tạo điểm. Chỉ gọi API khi bấm so khớp sau xác nhận; có thể phát sinh phí theo tài khoản API.
+Thiếu key vẫn tải/chuẩn bị ảnh được, nút so khớp bị khóa. Key sai, timeout, 429, refusal hoặc phản hồi không hợp lệ hiển thị lỗi, không tự tạo điểm. Chỉ gọi API khi bấm **So khớp con dấu**, **So khớp lại** hoặc nút tra cứu; có thể phát sinh phí theo tài khoản API.
 
 Các bước chuẩn bị được giữ trong trang đang mở; tải lại trang sẽ bắt đầu luồng mới. Tệp đã lưu vẫn nằm trong kho, phiên/kết quả đã tạo vẫn mở lại được từ **Lịch sử phân tích**. Không tự gửi lại request khi tải trang.
 
@@ -39,4 +41,6 @@ npm run build
 npm run test:e2e
 ```
 
-E2E dùng PDF/ảnh thử nghiệm, schema PostgreSQL riêng và mock của SDK OpenAI. Kiểm tra chọn trang, xác nhận vùng/toàn ảnh, thêm tổ chức cùng dấu, dùng lại thư viện, consent, báo cáo, chạy lại, thiếu key/lỗi upstream và màn hình nhỏ. Không gọi API trả phí trong kiểm thử. Backend kiểm tra quyền truy cập, liên kết tổ chức/mẫu và rollback khi lỗi.
+E2E dùng PDF/ảnh thử nghiệm, schema PostgreSQL riêng và mock của SDK OpenAI. Kiểm tra chọn trang, xác nhận vùng/toàn ảnh, thêm tổ chức cùng dấu, dùng lại thư viện, bắt đầu trực tiếp, báo cáo, chạy lại, thiếu key/lỗi upstream và màn hình nhỏ. Không gọi API trả phí trong kiểm thử. Backend kiểm tra quyền truy cập, liên kết tổ chức/mẫu và rollback khi lỗi.
+
+Phần giải thích dùng cùng phản hồi đã lưu, không có lượt API tóm tắt riêng. Prompt mới `seal-brief-vi-v3` yêu cầu nhận xét ngắn; chạy lại để nhận căn cứ mới theo prompt này. Kết luận theo ngưỡng điểm, không sửa điểm để khớp lời nhận xét. Xem [cấu trúc giải thích ngắn](concise_explanations.md).

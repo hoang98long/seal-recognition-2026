@@ -159,7 +159,13 @@ export interface Annotation extends Entity {
   note: string;
   source: string;
 }
+export interface ComparisonExplanation {
+  conclusion: string;
+  reasons: { kind: 'matching' | 'differing'; text: string }[];
+  limitation: string | null;
+}
 export interface Result extends Entity {
+  explanation?: ComparisonExplanation | null;
   session_id: string;
   candidate_id: string;
   model_name: string;

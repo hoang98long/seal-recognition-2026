@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { upload } from '../lib/api';
 import type { Asset } from '../types';
+import { comparisonNotice } from '../lib/comparisonPresentation';
 
 export function Loading() {
   return (
@@ -255,9 +256,6 @@ export function UploadBox({
 export const Disclaimer = () => (
   <div className="notice">
     <AlertTriangle size={18} />
-    <span>
-      Không phải kết luận giám định pháp y. Điểm AI chưa được hiệu chuẩn, không phải xác suất cùng dụng cụ và
-      không xác thực tài liệu thật/giả.
-    </span>
+    <span>{comparisonNotice}</span>
   </div>
 );

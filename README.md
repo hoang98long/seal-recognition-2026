@@ -29,7 +29,7 @@ Nếu PowerShell báo `Activate.ps1` hoặc `npm.ps1` bị chặn, chạy `Set-E
 
 Muốn trở về cổng chuẩn khi đã trống: đổi lệnh uvicorn thành `--port 8000`, đặt API_PORT=8000 và FRONTEND_ORIGIN=http://localhost:5173 trong backend/.env, đồng thời SEAL_API_TARGET=http://127.0.0.1:8000 và SEAL_FRONTEND_PORT=5173 trong frontend/.env.local. Uvicorn CLI dùng `--port`, không tự đọc biến API_PORT của ứng dụng. File mẫu giữ các cổng mặc định 8000/5173.
 
-Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, đặt `OPENAI_MODEL` đúng ID model mà key được phép dùng rồi khởi động lại backend. Cấu hình mẫu dùng `gpt-4.1`; cấu hình local đã kiểm tra ngày 10/11/2026 dùng `gpt-6.1-sol` (ID `gpt-6.1` không hợp lệ với key hiện tại). Cài đặt → Kết nối OpenAI → Kiểm tra kết nối xác thực key và ID model bằng API thông tin model, không sinh nội dung. Kiểm tra này chưa xác nhận khả năng xử lý ảnh hoặc hạn mức; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision, có tính phí API. Đã kiểm tra thành công luồng Vision + Structured Outputs thật bằng hai ảnh tự tạo, không gửi tài liệu người dùng. Không tự thay thế bằng kết quả giả.
+Để dùng OpenAI thật: điền `OPENAI_API_KEY` trong `backend/.env`, đặt `OPENAI_MODEL` đúng ID model mà key được phép dùng rồi khởi động lại backend. Cấu hình mẫu dùng `gpt-4.1`; cấu hình local đã kiểm tra ngày 10/11/2026 dùng `gpt-6.1-sol` (ID `gpt-6.1` không hợp lệ với key hiện tại). Cài đặt → Kết nối so khớp → Kiểm tra kết nối xác thực key và ID model bằng API thông tin model, không sinh nội dung. Kiểm tra này chưa xác nhận khả năng xử lý ảnh hoặc hạn mức; tiếp đó chạy một cặp ảnh được phép chia sẻ để kiểm tra Vision, có tính phí API. Đã kiểm tra thành công luồng Vision + Structured Outputs thật bằng hai ảnh tự tạo, không gửi tài liệu người dùng. Không tự thay thế bằng kết quả giả.
 
 ## Thiết lập từ đầu trên Windows
 
@@ -81,7 +81,10 @@ Dùng **localhost** ở trình duyệt để nhất quán FRONTEND_ORIGIN và co
 
 PDF đã hỗ trợ lớp chú thích/biểu mẫu chứa dấu điện tử; có thể kéo chuột vẽ vùng ngay cả khi chưa bấm gợi ý. Ảnh đã xử lý có tên theo nguồn/trang/đơn vị và được đổi tên. Preview K xuất hiện ngay tại bước chọn K. Cấu hình xử lý được quản lý theo tổ chức.
 
-**So khớp văn bản & ảnh dấu:** vào mục **Văn bản & ảnh dấu** tại `/compare/document-stamp`. Tải văn bản, tải ảnh dấu hoặc chọn dấu đã lưu theo tổ chức, kiểm tra vùng dấu được gợi ý rồi xác nhận gửi OpenAI. Kết quả và báo cáo hiện ngay trong cùng luồng. Đường dẫn `/demo/document-stamp` cũ tự chuyển sang trang mới. Xem [hướng dẫn so khớp](docs/demo_document_stamp.md).
+**So khớp văn bản & ảnh dấu:** vào mục **Văn bản & ảnh dấu** tại `/compare/document-stamp`. Tải văn bản, tải ảnh dấu hoặc chọn dấu đã lưu theo tổ chức, kiểm tra vùng dấu được gợi ý rồi bấm **So khớp con dấu**. Kết quả và báo cáo hiện ngay trong cùng luồng. Đường dẫn `/demo/document-stamp` cũ tự chuyển sang trang mới. Xem [hướng dẫn so khớp](docs/demo_document_stamp.md).
+
+Giao diện so khớp và báo cáo dùng cách gọi trung tính; kết quả gồm điểm %, mức tương đồng, ảnh Q/K, thời gian và Top 3 khi tra cứu thư viện. Bản giải thích gồm một câu kết luận, tối đa ba căn cứ quan sát và một lưu ý. Các diễn giải dài/OCR và thông tin nhà cung cấp/model/prompt/token không được trình bày. Backend vẫn dùng API hiện có, giữ phản hồi đầy đủ trong CSDL và bắt đầu xử lý khi người dùng bấm So khớp hoặc Tra cứu; chưa triển khai thuật toán matching mới. Xem [thiết kế giải thích ngắn](docs/concise_explanations.md).
+
 
 **Nhập con dấu tổ chức:** chọn **Thêm con dấu tổ chức** tại Tổng quan, Thư viện hoặc ngay trên dòng tổ chức. Trang `/seal-library/add` cho phép chọn/tạo tổ chức, tải ảnh/PDF, xác nhận vùng dấu và lưu mẫu cùng ảnh trong một lần. Sau khi lưu, có thể so khớp ngay hoặc thêm ảnh khác cho cùng mẫu. Không cần tạo dụng cụ đóng dấu.
 
@@ -91,11 +94,11 @@ PDF đã hỗ trợ lớp chú thích/biểu mẫu chứa dấu điện tử; c�
 4. Điều chỉnh góc xoay, sáng/tương phản/gamma, bão hòa, khử nhiễu, nét, HSV, ngưỡng, hình thái, đảo màu, nền. Preview tính bằng backend. Lưu/copy hồ sơ thông số cho Q/K; ROI chọn riêng từng ảnh.
 5. Xác nhận ROI → Áp dụng và lưu. Tải PNG hoặc chọn làm Q/K. Chỉnh tiếp cần lưu phiên bản mới trước khi chọn.
 6. Thư viện → **Thêm con dấu tổ chức**. Chọn tổ chức có sẵn hoặc nhập tên mới, tải ảnh và xác nhận vùng dấu. Mẫu mới được lưu cùng ảnh; cũng có thể thêm ảnh vào mẫu có sẵn. Các tab mẫu thiết kế/dụng cụ dành cho quản lý chi tiết khi cần.
-7. So khớp → chọn Q/K tải lên hoặc tối đa 5 K thư viện. Kiểm tra ảnh, số calls và xác nhận được phép gửi OpenAI. Chỉ ROI đã lưu được gửi, không gửi PDF trực tiếp.
+7. So khớp → chọn Q/K tải lên hoặc tối đa 5 K thư viện. Kiểm tra ảnh và bấm **So khớp con dấu**. Luồng nâng cao gồm 4 bước; không còn bước xác nhận riêng.
 8. Xem dấu hiệu giống/khác/chưa rõ, hạn chế, model/usage. Zoom, hoán đổi hiển thị, chồng ảnh cùng kích thước (chưa căn chỉnh hình học). Khoanh vùng người dùng được lưu riêng với nguồn user.
 9. So sánh lại tạo kết quả mới cùng phiên; giữ nguyên ID ảnh, SHA256 và thông số của kết quả cũ. Xuất HTML tự chứa ảnh; **Ctrl+P → Lưu dưới dạng PDF** trong trình duyệt.
 
-“Lớp phủ mặt nạ” chỉ tô preview, không lưu màu xanh vào ảnh mực. Làm nét không phục hồi chứng cứ gốc. Preview hiển thị cạnh tối đa 1200px, PNG lưu theo ROI đầy đủ. Nếu dùng toàn ảnh/trang thay vì crop, cần xác nhận riêng rằng toàn bộ nội dung có thể được gửi khi chọn Q/K.
+“Lớp phủ mặt nạ” chỉ tô preview, không lưu màu xanh vào ảnh mực. Làm nét không phục hồi chứng cứ gốc. Preview hiển thị cạnh tối đa 1200px, PNG lưu theo ROI đầy đủ. Nếu dùng toàn ảnh/trang thay vì crop, tích **Chọn toàn ảnh/trang** ở bước chuẩn bị.
 
 ## Kiến trúc
 

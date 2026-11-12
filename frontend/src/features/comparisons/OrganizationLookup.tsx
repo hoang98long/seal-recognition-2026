@@ -4,7 +4,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { LoaderCircle, RefreshCw, ScanLine } from 'lucide-react';
 import { api, post, previewUrl } from '../../lib/api';
 import { scoreBand, scoreLabel, statusLabel } from '../../lib/utils';
-import type { Asset, OpenAIStatus } from '../../types';
+import { resultErrorMessage } from '../../lib/comparisonPresentation';
+import type { Asset, ComparisonExplanation as Explanation, OpenAIStatus } from '../../types';
+import { ComparisonExplanation } from '../../components/ComparisonExplanation';
 import { Button } from '../../components/ui/button';
 import { Disclaimer, ErrorBox, Loading, PageHeader, UploadBox } from '../../components/shared';
 import { useAuth } from '../auth/Auth';
@@ -34,6 +36,7 @@ export interface LookupState {
     result_id: string;
     reference_asset_id: string;
     summary: string;
+    explanation?: Explanation | null;
   }[];
 }
 
@@ -47,7 +50,6 @@ export function OrganizationLookup() {
   const [uploading, setUploading] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
   const [loadingAsset, setLoadingAsset] = useState(false);
   const submitRef = useRef(false);
@@ -75,7 +77,6 @@ export function OrganizationLookup() {
   const busy = running || uploading || preparing || loadingAsset;
   const preparedCallback = useCallback((value: PreparedStamp | null) => {
     setPrepared(value);
-    setConsent(false);
     setError('');
   }, []);
   useEffect(() => {
@@ -101,10 +102,9 @@ export function OrganizationLookup() {
     };
   }, [linkedQ]);
   async function start(resume = false) {
-    if (submitRef.current || !consent || !status.data?.is_configured || (!resume && !prepared)) return;
+    if (submitRef.current || !status.data?.is_configured || (!resume && !prepared)) return;
     submitRef.current = true;
     setSubmitting(true);
-    setConsent(false);
     setError('');
     try {
       if (resume) await post(`/library-searches/${sessionId}/resume`, { consent: true });
@@ -134,7 +134,6 @@ export function OrganizationLookup() {
     setAsset(null);
     setPrepared(null);
     setSessionId('');
-    setConsent(false);
     setError('');
     setSearch({}, { replace: true });
   }
@@ -143,7 +142,7 @@ export function OrganizationLookup() {
   return (
     <>
       <PageHeader
-        eyebrow="TRA CỨU THƯ VIỆN · OPENAI API"
+        eyebrow="TRA CỨU THƯ VIỆN CON DẤU"
         title="Top 3 tổ chức có dấu tương đồng"
         description="Một dấu cần kiểm tra, đối chiếu với tất cả mẫu hợp lệ trong CSDL và xếp hạng theo tổ chức."
       >
@@ -155,7 +154,7 @@ export function OrganizationLookup() {
       <div className="workflow-guide">
         <Link to="/organizations">1. Tổ chức & thư viện dấu</Link>
         <span>2. Chuẩn bị dấu cần kiểm tra</span>
-        <span>3. Quét thư viện qua API → Top 3</span>
+        <span>3. So khớp thư viện → Top 3</span>
       </div>
       {user?.role === 'viewer' ? (
         <div className="notice">Tài khoản chỉ xem có thể mở kết quả tra cứu đã lưu trong Lịch sử.</div>
@@ -175,7 +174,6 @@ export function OrganizationLookup() {
                       onUploaded={(a) => {
                         setAsset(a);
                         setPrepared(null);
-                        setConsent(false);
                         setError('');
                       }}
                     />
@@ -189,7 +187,6 @@ export function OrganizationLookup() {
                         variant="outline"
                         onClick={() => {
                           setPrepared(null);
-                          setConsent(false);
                         }}
                       >
                         Chỉnh lại vùng dấu từ ảnh này
@@ -217,7 +214,7 @@ export function OrganizationLookup() {
               )}
             </div>
             <section className="panel workspace-upload lookup-confirm">
-              <h2>2. Xác nhận so khớp thư viện</h2>
+              <h2>2. So khớp thư viện</h2>
               {inventory.isPending ? (
                 <Loading />
               ) : inventory.error ? (
@@ -227,7 +224,7 @@ export function OrganizationLookup() {
                   <div className="lookup-count">
                     <strong>{sessionId ? (job.data?.total ?? '…') : inventory.data.reference_count}</strong>
                     <span>
-                      cặp Q/K gửi qua OpenAI{!sessionId && ` · ${inventory.data.organization_count} tổ chức`}
+                      cặp ảnh đối chiếu{!sessionId && ` · ${inventory.data.organization_count} tổ chức`}
                     </span>
                   </div>
                   <p>
@@ -248,8 +245,8 @@ export function OrganizationLookup() {
                   )}
                   <p className="muted small">
                     {status.data?.is_configured
-                      ? `Model: ${status.data.model}. Có phát sinh phí API theo số cặp ảnh.`
-                      : 'Chưa cấu hình OpenAI API key. Bạn vẫn có thể chuẩn bị ảnh.'}
+                      ? 'Sẵn sàng đối chiếu với các mẫu trong thư viện.'
+                      : 'Dịch vụ so khớp chưa được cấu hình. Bạn vẫn có thể chuẩn bị ảnh.'}
                   </p>
                   <div className="score-legend">
                     <span className="score-badge score-green">&gt;90% tương đồng cao</span>
@@ -258,30 +255,17 @@ export function OrganizationLookup() {
                   </div>
                   {(!sessionId || retry) && (
                     <>
-                      <label className="check lookup-consent">
-                        <input
-                          type="checkbox"
-                          checked={consent}
-                          disabled={busy}
-                          onChange={(e) => setConsent(e.target.checked)}
-                        />
-                        Tôi được phép chia sẻ dấu Q và các dấu tham chiếu, đồng ý gửi qua OpenAI và chấp nhận
-                        chi phí API.
-                      </label>
                       <Button
                         className="w-full"
                         disabled={
                           busy ||
-                          !consent ||
                           !status.data?.is_configured ||
                           (!retry && (!prepared || !inventory.data.reference_count))
                         }
                         onClick={() => void start(retry)}
                       >
                         {submitting ? <LoaderCircle size={17} className="spin" /> : <ScanLine size={17} />}
-                        {retry
-                          ? `Tiếp tục ${job.data?.retry_count} cặp còn lại / lỗi`
-                          : 'Tra cứu Top 3 bằng OpenAI'}
+                        {retry ? `Tiếp tục ${job.data?.retry_count} cặp còn lại / lỗi` : 'Tra cứu Top 3'}
                       </Button>
                     </>
                   )}
@@ -290,7 +274,6 @@ export function OrganizationLookup() {
                       className="text-link"
                       disabled={busy}
                       onClick={() => {
-                        setConsent(false);
                         void inventory.refetch();
                       }}
                     >
@@ -335,7 +318,7 @@ export function OrganizationLookup() {
           </div>
           <p className="muted">{job.data.aggregation}</p>
           {job.data.errors.map((e) => (
-            <ErrorBox key={e.candidate_id} error={new Error(e.message)} />
+            <ErrorBox key={e.candidate_id} error={new Error(resultErrorMessage(e.code))} />
           ))}
           {job.data.insufficient_count > 0 && (
             <div className="notice">
@@ -361,18 +344,17 @@ export function OrganizationLookup() {
                   <img src={previewUrl(item.reference_asset_id)} alt={`Mẫu khớp nhất của ${item.name}`} />
                 </div>
                 <span className={`score-badge score-${scoreBand(item.score)}`}>{scoreLabel(item.score)}</span>
-                <p>{item.summary}</p>
+                {item.explanation && <ComparisonExplanation explanation={item.explanation} />}
                 <Button variant="outline" size="sm" asChild>
-                  <Link to={`/compare/${sessionId}/results?result=${item.result_id}`}>
-                    Xem dấu hiệu & ảnh đối chiếu
-                  </Link>
+                  <Link to={`/compare/${sessionId}/results?result=${item.result_id}`}>Xem ảnh đối chiếu</Link>
                 </Button>
               </article>
             ))}
           </div>
           {!job.data.rankings.length && !running && (
             <p>
-              Chưa có cặp đủ dữ liệu để xếp hạng. Kiểm tra vùng dấu, ảnh nguồn và lỗi API trước khi thử lại.
+              Chưa có cặp đủ dữ liệu để xếp hạng. Kiểm tra vùng dấu, ảnh nguồn và trạng thái xử lý trước khi
+              thử lại.
             </p>
           )}
         </section>

@@ -75,7 +75,7 @@ export function LoginPage() {
           </div>
         </div>
         <small>
-          <ShieldCheck size={16} /> Tệp riêng tư · Lưu trữ nội bộ · Kiểm soát chia sẻ
+          <ShieldCheck size={16} /> Tài liệu · Thư viện con dấu · Lịch sử đối chiếu
         </small>
       </div>
       <div className="login-form-wrap">

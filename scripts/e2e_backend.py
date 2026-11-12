@@ -73,13 +73,26 @@ def mock_transport(request):
                 "description": "DEMO: vòng ngoài tương đồng",
                 "strength": "weak",
                 "region_description": "Vòng ngoài",
+            },
+            {
+                "category": "layout",
+                "description": "DEMO: bố cục chữ tương đồng.",
+                "strength": "moderate",
+                "region_description": "Vùng chữ",
+            },
+        ],
+        "differing_features": [
+            {
+                "category": "text",
+                "description": "DEMO: khoảng cách chữ có khác biệt.",
+                "strength": "moderate",
+                "region_description": "Vùng chữ",
             }
         ],
-        "differing_features": [],
         "uncertain_features": [],
         "text_recognition_q": ["DEMO"],
         "text_recognition_k": ["DEMO"],
-        "limitations": ["DEMO — HTTP mock chỉ dùng cho kiểm thử"],
+        "limitations": ["DEMO: một phần chi tiết chưa rõ."],
         "recommendation_vi": "Không sử dụng dữ liệu kiểm thử làm kết luận.",
     }
     return httpx.Response(

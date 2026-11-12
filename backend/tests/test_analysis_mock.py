@@ -8,6 +8,7 @@ from conftest import upload_image
 from pydantic import SecretStr
 
 from app.core.config import get_settings
+from app.prompts.seal_comparison_vi import PROMPT_VERSION
 
 
 def install_mock(monkeypatch, comparison, status=200, error=None, refusal=False):
@@ -75,7 +76,8 @@ def test_sdk_structured_result_persist_rerun_report_and_annotations(
     assert response.status_code == 200, response.text
     results = client.get(f"/api/v1/analyses/{ident}/results").json()
     assert results[0]["visual_similarity_score"] == 83.5
-    assert results[0]["prompt_version"] == "seal-only-vi-v2"
+    assert results[0]["prompt_version"] == PROMPT_VERSION
+    assert len(results[0]["explanation"]["reasons"]) <= 3
     assert results[0]["is_uncalibrated"]
     assert results[0]["token_usage"]["total_tokens"] == 32
     assert results[0]["input_metadata"]["query"]["preprocessing"]["parameters"]["gamma"] == 1
@@ -107,7 +109,10 @@ def test_sdk_structured_result_persist_rerun_report_and_annotations(
     assert report.status_code == 200
     assert "text/html" in report.headers["content-type"]
     assert "attachment" in report.headers["content-disposition"]
-    assert "seal-only-vi-v2" in report.text
+    assert PROMPT_VERSION not in report.text
+    assert "Điểm tương đồng" in report.text
+    assert "83.50%" in report.text
+    assert "OpenAI" not in report.text
     assert "data:image/png;base64," in report.text
 
 
@@ -148,6 +153,10 @@ def test_upstream_errors(client, analysis, comparison_data, monkeypatch, http_st
     assert results[0]["visual_similarity_score"] is None
     assert "upstream detail" not in response.text
     assert client.get(f"/api/v1/analyses/{analysis['id']}").json()["status"] == "failed"
+    report = client.get(f"/api/v1/reports/{analysis['id']}")
+    assert "Không chấm điểm" in report.text
+    assert "OpenAI" not in report.text
+    assert "gpt-" not in report.text
 
 
 @pytest.mark.parametrize(
@@ -188,6 +197,9 @@ def test_insufficient_normalizes_score(client, analysis, comparison_data, monkey
     result = client.get(f"/api/v1/analyses/{analysis['id']}/results").json()[0]
     assert result["visual_similarity_score"] is None
     assert result["structured_result"]["same_design_plausible"] is None
+    report = client.get(f"/api/v1/reports/{analysis['id']}")
+    assert "Chưa đủ dữ liệu" in report.text
+    assert "Không chấm điểm" in report.text
 
 
 def test_unprocessed_assets_and_private_sessions(client, viewer, analyst, analysis, image_bytes):
@@ -208,7 +220,7 @@ def test_unprocessed_assets_and_private_sessions(client, viewer, analyst, analys
     assert viewer.get(f"/api/v1/reports/{analysis['id']}").status_code == 403
 
 
-def test_report_escapes_model_and_user_text(client, analysis, comparison_data, monkeypatch):
+def test_report_omits_provider_text_and_escapes_manual_notes(client, analysis, comparison_data, monkeypatch):
     malicious = '<script>alert("DEMO")</script><img src=x onerror=alert(1)>'
     comparison_data["summary_vi"] = malicious
     comparison_data["matching_features"][0]["description"] = malicious
@@ -217,10 +229,73 @@ def test_report_escapes_model_and_user_text(client, analysis, comparison_data, m
         client.post(f"/api/v1/analyses/{analysis['id']}/compare-openai", json={"consent": True}).status_code
         == 200
     )
+    result = client.get(f"/api/v1/analyses/{analysis['id']}/results").json()[0]
+    assert (
+        client.post(
+            f"/api/v1/analysis-results/{result['id']}/annotations",
+            json={
+                "label": "user_note",
+                "image_role": "Q",
+                "geometry": {"x": 0.1, "y": 0.1, "width": 0.2, "height": 0.2},
+                "note": malicious,
+            },
+        ).status_code
+        == 201
+    )
     report = client.get(f"/api/v1/reports/{analysis['id']}")
     assert "<script>" not in report.text
     assert "&lt;script&gt;" in report.text
     assert "sandbox" in report.headers["content-security-policy"]
+
+
+def test_compact_report_keeps_full_provider_response_internal(client, analysis, comparison_data, monkeypatch):
+    marker = "FULL_PROVIDER_DESCRIPTION_INTERNAL_ONLY"
+    comparison_data["summary_vi"] = marker
+    comparison_data["recommendation_vi"] = marker
+    comparison_data["observations_q"] = [marker]
+    comparison_data["text_recognition_k"] = [marker]
+    comparison_data["matching_features"][0]["description"] = marker * 10
+    comparison_data["differing_features"] = [
+        {
+            "category": "text",
+            "description": "Khoảng cách chữ trên vành có khác biệt.",
+            "strength": "moderate",
+            "region_description": "Vành dấu",
+        }
+    ]
+    comparison_data["limitations"] = ["Một phần chữ bị che khuất."]
+    install_mock(monkeypatch, comparison_data)
+    assert (
+        client.post(f"/api/v1/analyses/{analysis['id']}/compare-openai", json={"consent": True}).status_code
+        == 200
+    )
+    stored = client.get(f"/api/v1/analyses/{analysis['id']}/results").json()[0]
+    assert stored["structured_result"]["summary_vi"] == marker
+    assert stored["model_name"] == "gpt-4.1"
+    assert stored["explanation"]["reasons"] == [
+        {"kind": "differing", "text": "Khoảng cách chữ trên vành có khác biệt."}
+    ]
+    assert stored["explanation"]["limitation"] == "Một phần chữ bị che khuất."
+    report = client.get(f"/api/v1/reports/{analysis['id']}/export?download=true")
+    assert report.status_code == 200
+    assert "Cần xem xét" in report.text
+    assert "83.50%" in report.text
+    assert "Thời gian xử lý" in report.text
+    assert "data:image/png;base64," in report.text
+    assert "Căn cứ đối chiếu" in report.text
+    assert "Khoảng cách chữ trên vành có khác biệt." in report.text
+    assert "Một phần chữ bị che khuất." in report.text
+    for detail in [
+        marker,
+        "OpenAI",
+        "gpt-4.1",
+        "seal-only-vi-v2",
+        "Token",
+        "Khuyến nghị",
+        "Quan sát Q",
+        "Prompt:",
+    ]:
+        assert detail not in report.text
 
 
 def test_running_guard_and_recovery(client, analysis, comparison_data, monkeypatch, db):

@@ -470,8 +470,7 @@ export function Editor() {
                         }}
                         disabled={readOnly}
                       />
-                      Tôi cho phép dùng toàn ảnh/trang này. Nếu chọn làm Q/K, toàn bộ nội dung ảnh có thể được
-                      gửi OpenAI; hãy cắt ROI nếu có thông tin ngoài con dấu.
+                      Chọn toàn ảnh/trang
                     </label>
                   </div>
                 )}

@@ -70,12 +70,13 @@ async function preparePair(page: Page) {
   await q.getByRole('button', { name: 'Xác nhận vùng dấu Q', exact: true }).click();
   await expect(q.getByRole('button', { name: 'Ảnh Q đã sẵn sàng', exact: true })).toBeDisabled();
   await k.getByRole('button', { name: 'Dùng toàn ảnh K', exact: true }).click();
-  await k.getByRole('checkbox', { name: /Cho phép dùng toàn ảnh K/ }).check();
+  await expect(k.getByRole('button', { name: 'Xác nhận vùng dấu K', exact: true })).toBeDisabled();
+  await k.getByRole('checkbox', { name: 'Chọn toàn ảnh K', exact: true }).check();
   await k.getByRole('button', { name: 'Xác nhận vùng dấu K', exact: true }).click();
   await expect(k.getByRole('button', { name: 'Ảnh K đã sẵn sàng', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Tiếp tục so khớp', exact: true }).click();
-  await expect(page.getByAltText('Ảnh Q sẽ gửi OpenAI', { exact: true })).toBeVisible();
-  await expect(page.getByAltText('Ảnh K sẽ gửi OpenAI', { exact: true })).toBeVisible();
+  await expect(page.getByAltText('Ảnh Q dùng để so khớp', { exact: true })).toBeVisible();
+  await expect(page.getByAltText('Ảnh K dùng để đối chiếu', { exact: true })).toBeVisible();
 }
 
 test('Demo riêng: PDF hai trang + ảnh tải lên → ROI → OpenAI SDK mock → báo cáo và chạy lại', async ({
@@ -90,37 +91,40 @@ test('Demo riêng: PDF hai trang + ảnh tải lên → ROI → OpenAI SDK mock 
   await login(page);
   await preparePair(page);
   expect(calls).toBe(0);
-  const consent = page.getByLabel(
-    'Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.',
-    { exact: true },
-  );
-  await expect(page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'So khớp con dấu', exact: true })).toBeEnabled();
+  await expect(page.locator('.demo-review input[type=checkbox]')).toHaveCount(0);
   await page.getByLabel('Tên phiên so khớp', { exact: true }).fill('Demo PDF hai trang');
-  await consent.check();
-  await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
+  await page.getByRole('button', { name: 'So khớp con dấu', exact: true }).click();
   const result = page.getByRole('region', { name: 'Kết quả so khớp', exact: true });
-  await expect(result.getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true })).toBeVisible();
-  await expect(
-    result.getByText('DEMO — không phải AI thật. Hai ảnh thử nghiệm có vòng tròn và chữ DEMO.', {
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(result.getByRole('heading', { name: 'Cần xem xét', exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('DEMO — không phải AI thật');
+  await expect(page.locator('body')).not.toContainText(/OpenAI|bên ngoài|chia sẻ|gửi tới/i);
+  await expect(page.locator('.score-circle strong')).toHaveText('80');
+  await expect(result.locator('.match-conclusion')).toContainText('Hai ảnh có một số đặc điểm tương đồng');
+  await expect(result.getByRole('list', { name: 'Căn cứ đối chiếu' }).locator('li')).toHaveCount(3);
+  await expect(result.locator('.match-reasons')).toContainText('DEMO: khoảng cách chữ có khác biệt.');
+  await expect(result.locator('.match-limitation')).toContainText('DEMO: một phần chi tiết chưa rõ.');
   expect(calls).toBe(1);
   const link = await page.getByRole('link', { name: /Mở phiên đã lưu/ }).getAttribute('href');
   const id = link!.split('/')[2];
   const session = await (await page.request.get(`/api/v1/analyses/${id}`)).json();
   expect(session.source_document_id).toBeTruthy();
   const results = await (await page.request.get(`/api/v1/analyses/${id}/results`)).json();
+  expect(results[0].prompt_version).toBe('seal-brief-vi-v3');
   expect(results[0].input_metadata.query.preprocessing.source_page).toBe(2);
   expect(results[0].input_metadata.query.preprocessing.parameters.brightness).toBe(12);
   expect(results[0].input_metadata.reference.source_metadata.whole_source_confirmed).toBe(true);
+  expect(results[0].structured_result.summary_vi).toContain('DEMO — không phải AI thật');
   const report = await page.request.get(`/api/v1/reports/${id}/export?download=true`);
   expect(report.ok()).toBeTruthy();
-  expect(await report.text()).toContain('DEMO — không phải AI thật');
-  await expect(consent).not.toBeChecked();
-  await expect(page.getByRole('button', { name: 'So khớp lại bằng OpenAI', exact: true })).toBeDisabled();
-  await consent.check();
-  await page.getByRole('button', { name: 'So khớp lại bằng OpenAI', exact: true }).click();
+  expect(await report.text()).toContain('Điểm tương đồng');
+  expect(await report.text()).toContain('Căn cứ đối chiếu');
+  expect(await report.text()).toContain('DEMO: khoảng cách chữ có khác biệt.');
+  expect(await report.text()).not.toMatch(
+    /OpenAI|gpt-|seal-only-vi|SDK|Quan sát Q|Khuyến nghị|bên ngoài|gửi tới|chia sẻ/,
+  );
+  await expect(page.getByRole('button', { name: 'So khớp lại', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'So khớp lại', exact: true }).click();
   await expect(result.getByText(/2 phiên bản kết quả/)).toBeVisible();
   expect(calls).toBe(2);
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -134,6 +138,70 @@ test('Demo riêng: PDF hai trang + ảnh tải lên → ROI → OpenAI SDK mock 
     .poll(() => page.locator('.sidebar').evaluate((el) => el.getBoundingClientRect().right))
     .toBeLessThanOrEqual(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(820);
+  await page.getByRole('link', { name: 'Xem ảnh đối chiếu', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Cần xem xét', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Thông tin ảnh', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Chi tiết kỹ thuật', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Quan sát ảnh Q', { exact: true })).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText(/OpenAI|bên ngoài|chia sẻ|gửi tới/i);
+  await expect(page.locator('body')).not.toContainText('gpt-');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  for (const figure of await page.locator('.result-images-panel figure').all()) {
+    const bounds = (await figure.boundingBox())!;
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  }
+  await page.screenshot({
+    path: 'test-results/compact-results-phone.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.screenshot({
+    path: 'test-results/compact-results-desktop.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
+  for (const path of ['/dashboard', '/settings', '/settings?tab=algorithms', '/history']) {
+    await page.goto(path);
+    await expect(page.locator('body')).not.toContainText(/OpenAI|bên ngoài|chia sẻ|gửi tới/i);
+    await expect(page.locator('body')).not.toContainText('gpt-');
+  }
+  await page.route('**/api/v1/auth/me', async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...(await response.json()), role: 'admin' } });
+  });
+  await page.route('**/api/v1/audit-logs', async (route) =>
+    route.fulfill({
+      json: [
+        {
+          id: 'audit-1',
+          action: 'external_consent',
+          entity_type: 'analysis',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'audit-2',
+          action: 'library_search_consent',
+          entity_type: 'analysis',
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'audit-3',
+          action: 'openai_connection_test',
+          entity_type: 'settings',
+          created_at: new Date().toISOString(),
+        },
+      ],
+    }),
+  );
+  await page.goto('/settings?tab=system');
+  await expect(page.getByText('Bắt đầu so khớp', { exact: true })).toBeVisible();
+  await expect(page.getByText('Bắt đầu tra cứu thư viện', { exact: true })).toBeVisible();
+  await expect(page.getByText('Kiểm tra kết nối so khớp', { exact: true })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(
+    /OpenAI|external_consent|library_search_consent|bên ngoài|chia sẻ|gửi tới/i,
+  );
   expect(errors).toEqual([]);
 });
 
@@ -149,20 +217,13 @@ test('Thiếu key: vẫn chuẩn bị Q/K nhưng không tự gửi hoặc tạo 
   });
   await login(page);
   await preparePair(page);
-  await page
-    .getByLabel('Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.', {
-      exact: true,
-    })
-    .check();
-  await expect(page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true })).toBeDisabled();
-  await expect(page.getByText(/Chưa cấu hình OPENAI_API_KEY trong backend/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'So khớp con dấu', exact: true })).toBeDisabled();
+  await expect(page.getByText(/Dịch vụ so khớp chưa sẵn sàng/)).toBeVisible();
   await expect(page.getByRole('region', { name: 'Kết quả so khớp', exact: true })).toHaveCount(0);
   expect(calls).toBe(0);
 });
 
-test('Lỗi upstream: hiển thị lỗi, không có điểm giả; người dùng xác nhận lại để thử lại cùng phiên', async ({
-  page,
-}) => {
+test('Lỗi upstream: hiển thị lỗi, không có điểm giả; bấm chạy lại cùng phiên', async ({ page }) => {
   let createCount = 0;
   let attempts = 0;
   page.on('request', (r) => {
@@ -185,24 +246,17 @@ test('Lỗi upstream: hiển thị lỗi, không có điểm giả; người dù
   });
   await login(page);
   await preparePair(page);
-  const consent = page.getByLabel(
-    'Tôi được phép chia sẻ hai ảnh Q/K này và đồng ý gửi tới OpenAI để phân tích.',
-    { exact: true },
-  );
-  await consent.check();
-  await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
+  await page.getByRole('button', { name: 'So khớp con dấu', exact: true }).click();
   await expect(
-    page.getByRole('alert').filter({ hasText: 'DEMO: OpenAI đang giới hạn tần suất. Thử lại sau.' }),
+    page.getByRole('alert').filter({ hasText: 'Dịch vụ so khớp đang giới hạn lượt xử lý hoặc hết hạn mức.' }),
   ).toBeVisible();
   await expect(page.getByRole('region', { name: 'Kết quả so khớp', exact: true })).toHaveCount(0);
-  await expect(consent).not.toBeChecked();
   expect(attempts).toBe(1);
-  await consent.check();
-  await page.getByRole('button', { name: 'So khớp bằng OpenAI', exact: true }).click();
+  await page.getByRole('button', { name: 'So khớp con dấu', exact: true }).click();
   await expect(
     page
       .getByRole('region', { name: 'Kết quả so khớp', exact: true })
-      .getByRole('heading', { name: 'Tương đồng biểu kiến', exact: true }),
+      .getByRole('heading', { name: 'Cần xem xét', exact: true }),
   ).toBeVisible();
   expect(attempts).toBe(2);
   expect(createCount).toBe(1);

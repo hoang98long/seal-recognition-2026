@@ -3,15 +3,33 @@ import html
 import json
 
 from app.db.models import AnnotationRegion
+from app.services.comparison_explanation import compact_explanation
 from app.services.storage_service import authorized_asset
 
-DISCLAIMER = "Không phải kết luận giám định pháp y. Điểm tương đồng do AI ước lượng chưa được hiệu chuẩn; không phải xác suất cùng dụng cụ và không xác thực tài liệu thật/giả."
-VERDICTS = {
-    "visually_similar": "Tương đồng biểu kiến",
-    "partially_similar": "Tương đồng một phần",
-    "visually_different": "Khác biệt biểu kiến",
-    "insufficient_evidence": "KHÔNG ĐỦ CƠ SỞ KẾT LUẬN",
-}
+DISCLAIMER = "Điểm tương đồng dùng để tham khảo, không phải kết luận giám định hoặc xác thực tài liệu."
+
+
+def score_label(score):
+    return (
+        "Chưa đủ dữ liệu"
+        if score is None
+        else "Tương đồng cao"
+        if score > 90
+        else "Cần xem xét"
+        if score >= 70
+        else "Ít tương đồng"
+    )
+
+
+def report_error(code):
+    return {
+        "provider_timeout": "So khớp vượt quá thời gian chờ. Vui lòng thử lại.",
+        "provider_rate_limit": "Dịch vụ so khớp đang giới hạn lượt xử lý hoặc hết hạn mức. Vui lòng kiểm tra kết nối hoặc thử lại sau.",
+        "invalid_api_key": "Thông tin kết nối dịch vụ so khớp không hợp lệ.",
+        "model_access": "Cấu hình dịch vụ so khớp chưa khả dụng hoặc thiếu quyền truy cập.",
+        "openai_not_configured": "Dịch vụ so khớp chưa được cấu hình.",
+        "provider_network": "Không kết nối được dịch vụ so khớp.",
+    }.get(code, "Không thể hoàn tất so khớp. Vui lòng kiểm tra ảnh và thử lại.")
 
 
 def esc(value):
@@ -36,7 +54,6 @@ def make_report(db, session, results, user):
 
     sections = []
     for index, result in enumerate(results, 1):
-        data = result.structured_result
         snapshot = result.input_metadata
         q = snapshot.get("query", {}).get("asset_id")
         k = snapshot.get("reference", {}).get("asset_id")
@@ -52,49 +69,48 @@ def make_report(db, session, results, user):
                 )
                 + "</div>"
             )
-        evidence = ""
-        for field, label in [
-            ("matching_features", "Điểm tương đồng"),
-            ("differing_features", "Điểm khác biệt"),
-            ("uncertain_features", "Vùng chưa rõ"),
-        ]:
-            evidence += (
-                f"<h3>{label}</h3><ul>"
-                + "".join(
-                    f"<li>{esc(x['description'])} — {esc(x['region_description'])}</li>"
-                    for x in data.get(field, [])
-                )
-                + "</ul>"
-            )
-        observations = "".join(
-            f"<h3>{label}</h3><ul>" + "".join(f"<li>{esc(x)}</li>" for x in data.get(field, [])) + "</ul>"
-            for field, label in [
-                ("observations_q", "Quan sát Q"),
-                ("observations_k", "Quan sát K"),
-                ("text_recognition_q", "Chữ đọc được Q"),
-                ("text_recognition_k", "Chữ đọc được K"),
-                ("limitations", "Hạn chế"),
-            ]
-        )
         annotations = db.scalars(
             select(AnnotationRegion).where(AnnotationRegion.analysis_result_id == result.id)
         ).all()
         manual = (
-            "<h3>Ghi chú thủ công (không phải kết luận AI)</h3><ul>"
+            "<h3>Ghi chú thủ công của chuyên viên</h3><ul>"
             + "".join(
                 f"<li>Ảnh {esc(a.image_role)} · {esc(a.label)} · {esc(a.note)} · Vùng chuẩn hóa {esc(json.dumps(a.geometry))}</li>"
                 for a in annotations
             )
             + "</ul>"
         )
-        sections.append(f"""<section><h2>Kết quả {index}: {esc(VERDICTS.get(result.verdict, result.verdict))}</h2>
+        score = result.visual_similarity_score if result.result_status == "success" else None
+        label = "Không hoàn tất so khớp" if result.result_status == "error" else score_label(score)
+        note = (
+            report_error(result.error_code)
+            if result.result_status == "error"
+            else "Chưa đủ dữ liệu để chấm điểm. Hãy kiểm tra vùng dấu và chất lượng ảnh."
+            if score is None
+            else "Mức tương đồng giữa dấu cần kiểm tra và dấu đối chiếu."
+        )
+        explanation = compact_explanation(result)
+        if explanation:
+            note = explanation["conclusion"]
+        reasons = ""
+        if explanation and explanation["reasons"]:
+            reasons = (
+                "<h3>Căn cứ đối chiếu</h3><ul>"
+                + "".join(
+                    f"<li><strong>{'Tương đồng' if reason['kind'] == 'matching' else 'Khác biệt'}:</strong> {esc(reason['text'])}</li>"
+                    for reason in explanation["reasons"]
+                )
+                + "</ul>"
+            )
+        limitation = (
+            f"<p><strong>Lưu ý:</strong> {esc(explanation['limitation'])}</p>"
+            if explanation and explanation["limitation"]
+            else ""
+        )
+        sections.append(f"""<section><h2>Kết quả {index}: {esc(label)}</h2>
         <p>Thời gian UTC: {esc(result.created_at)} · Mã kết quả: {esc(result.id)}</p>
-        {images}<p>Điểm tương đồng do AI ước lượng: <strong class='score {score_band(result.visual_similarity_score)}'>{esc(str(result.visual_similarity_score) + "%" if result.visual_similarity_score is not None else "Không chấm điểm")}</strong></p>
-        <p>{esc(data.get("summary_vi") or result.error_summary or "")}</p>{evidence}{observations}
-        <p>Khuyến nghị: {esc(data.get("recommendation_vi", ""))}</p>{manual}
-        <h3>Thông tin kỹ thuật và tiền xử lý</h3><p>Model: {esc(result.model_name)} · SDK: {esc(result.provider_version)} · Prompt: {esc(result.prompt_version)}</p>
-        <p>Request ID: {esc(result.request_id_provider)} · Thời gian: {result.duration_ms} ms · Chi phí chưa xác định</p>
-        <pre>{esc(json.dumps({"input": snapshot, "usage": result.token_usage}, ensure_ascii=False, indent=2))}</pre></section>""")
+        {images}<p>Điểm tương đồng: <strong class='score {score_band(score)}'>{esc(str(score) + "%" if score is not None else "Không chấm điểm")}</strong></p>
+        <p><strong>Kết luận:</strong> {esc(note)}</p>{reasons}{limitation}<p>Thời gian xử lý: {esc(result.duration_ms)} ms</p>{manual}</section>""")
     ranking = ""
     if session.mode == "organization_search":
         from app.services.library_search_service import search_state

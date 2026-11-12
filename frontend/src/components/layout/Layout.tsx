@@ -84,7 +84,6 @@ export function Layout() {
             >
               <Icon size={19} />
               {label}
-              {path === '/compare/new' && <span className="nav-tag">AI</span>}
             </NavLink>
           ))}
           {user.role === 'admin' && (
@@ -97,11 +96,11 @@ export function Layout() {
           <div className="private-label">
             <ShieldCheck size={18} />
             <span>
-              Môi trường nội bộ<small>Chia sẻ ảnh theo xác nhận</small>
+              Hồ sơ con dấu<small>Lưu tài liệu và kết quả</small>
             </span>
           </div>
           <div className="sidebar-version">
-            PHIÊN BẢN 1.0 <span>● TRỰC TUYẾN NỘI BỘ</span>
+            PHIÊN BẢN 1.0 <span>QUẢN LÝ HỒ SƠ</span>
           </div>
         </div>
       </aside>
@@ -125,7 +124,7 @@ export function Layout() {
           <div className="topbar-actions">
             <NavLink to="/settings" className={`connection ${status.data?.is_configured ? 'connected' : ''}`}>
               <i />
-              {status.data?.is_configured ? 'OpenAI đã cấu hình' : 'Chưa cấu hình OpenAI'}
+              {status.data?.is_configured ? 'Dịch vụ so khớp đã cấu hình' : 'Chưa cấu hình so khớp'}
             </NavLink>
             <Button
               variant="ghost"
@@ -180,7 +179,7 @@ export function Layout() {
         </main>
         <footer className="app-footer">
           <span>HỆ THỐNG GIÁM ĐỊNH CON DẤU</span>
-          <span>Phân tích thị giác hỗ trợ chuyên viên · V1.0</span>
+          <span>Hệ thống đối chiếu hình ảnh · V1.0</span>
         </footer>
       </div>
     </div>

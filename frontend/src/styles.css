@@ -2066,6 +2066,48 @@ td a:hover {
   color: #8da2b4;
   font-size: 0.75rem;
 }
+.result-summary > div:last-child {
+  min-width: 0;
+}
+.match-explanation {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.match-conclusion,
+.match-limitation {
+  margin: 8px 0;
+}
+.match-reasons {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  display: grid;
+  gap: 7px;
+}
+.match-reasons li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.match-reason-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--subtle);
+}
+.match-reason-label.matching {
+  color: #20845c;
+}
+.match-reason-label.differing {
+  color: #b45736;
+}
+.match-limitation {
+  color: var(--muted, #687b8c);
+}
 .result-images-panel {
   margin-bottom: 22px;
 }
@@ -2612,8 +2654,26 @@ td a:hover {
     grid-template-columns: 1fr 1fr;
   }
   .result-summary {
-    gap: 16px;
+    display: grid;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 8px 16px;
     padding: 18px;
+  }
+  .result-summary > .score-circle {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .result-summary > div:last-child {
+    display: contents;
+  }
+  .result-summary .eyebrow,
+  .result-summary h2 {
+    grid-column: 2;
+  }
+  .result-summary .match-explanation,
+  .result-summary > div:last-child > p:not(.eyebrow),
+  .result-summary small {
+    grid-column: 1 / -1;
   }
   .score-circle {
     width: 80px;
@@ -2628,6 +2688,9 @@ td a:hover {
   .result-summary p:not(.eyebrow) {
     font-size: 0.8125rem;
   }
+  .result-summary .match-explanation p {
+    font-size: inherit;
+  }
   .result-toolbar {
     flex-wrap: wrap;
   }
@@ -2637,6 +2700,13 @@ td a:hover {
   }
   .comparison-images figure {
     min-width: 200px;
+  }
+  .result-images-panel .comparison-images {
+    flex-wrap: wrap;
+  }
+  .result-images-panel .comparison-images figure {
+    flex-basis: 100%;
+    min-width: 0;
   }
   .comparison-images figure > img {
     height: 210px;
